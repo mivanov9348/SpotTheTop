@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SpotTheTop.Core/SpotTheTop.Core.csproj" />
+  <Project Path="SpotTheTop.Data/SpotTheTop.Data.csproj" />
+  <Project Path="SpotTheTop/SpotTheTop.Api.csproj" />
+</Solution>
