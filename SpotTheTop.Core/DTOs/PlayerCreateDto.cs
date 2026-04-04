@@ -1,6 +1,7 @@
 ﻿namespace SpotTheTop.Core.DTOs
 {
     using System.ComponentModel.DataAnnotations;
+
     public class PlayerCreateDto
     {
         [Required, MaxLength(100)]
@@ -12,6 +13,8 @@
         public DateTime DateOfBirth { get; set; }
 
         [Required]
-        public string Position { get; set; } = string.Empty;
+        public int PositionId { get; set; }
+
+        public int? TeamId { get; set; }
     }
 }

@@ -17,13 +17,26 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // --- Identity ---
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
+    // Премахва изискването за цифра
     options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 2;
+
+    // Минималната възможна дължина е 1 (Identity не позволява 0)
+    options.Password.RequiredLength = 1;
+
+    // Премахва изискването за малка буква
+    options.Password.RequireLowercase = false;
+
+    // Премахва изискването за главна буква
+    options.Password.RequireUppercase = false;
+
+    // Премахва изискването за специален символ (@, #, !, и т.н.)
     options.Password.RequireNonAlphanumeric = false;
+
+    // Премахва изискването за брой уникални символи
+    options.Password.RequiredUniqueChars = 0;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
-
 // --- JWT ---
 builder.Services.AddAuthentication(options =>
 {

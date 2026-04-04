@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpotTheTop.Data;
 
@@ -11,9 +12,11 @@ using SpotTheTop.Data;
 namespace SpotTheTop.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404141846_AddedMatchesAndScouts")]
+    partial class AddedMatchesAndScouts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -220,37 +223,6 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.League", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Leagues");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Country = "Bulgaria",
-                            Name = "Efbet Лига"
-                        });
-                });
-
             modelBuilder.Entity("SpotTheTop.Core.Entities.Match", b =>
                 {
                     b.Property<int>("Id")
@@ -279,23 +251,6 @@ namespace SpotTheTop.Data.Migrations
                     b.HasIndex("HomeTeamId");
 
                     b.ToTable("Matches");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AwayTeamId = 2,
-                            HomeTeamId = 1,
-                            MatchDate = new DateTime(2024, 4, 7, 17, 0, 0, 0, DateTimeKind.Unspecified),
-                            Result = "2-0"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            AwayTeamId = 1,
-                            HomeTeamId = 2,
-                            MatchDate = new DateTime(2024, 5, 20, 18, 0, 0, 0, DateTimeKind.Unspecified)
-                        });
                 });
 
             modelBuilder.Entity("SpotTheTop.Core.Entities.Player", b =>
@@ -339,52 +294,6 @@ namespace SpotTheTop.Data.Migrations
                     b.HasIndex("TeamId");
 
                     b.ToTable("Players");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AddedByUserId = "System",
-                            DateOfBirth = new DateTime(2004, 12, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FirstName = "Пламен",
-                            IsApproved = true,
-                            LastName = "Андреев",
-                            PositionId = 1,
-                            TeamId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            AddedByUserId = "System",
-                            DateOfBirth = new DateTime(2001, 6, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FirstName = "Хосе",
-                            IsApproved = true,
-                            LastName = "Кордоба",
-                            PositionId = 2,
-                            TeamId = 1
-                        },
-                        new
-                        {
-                            Id = 3,
-                            AddedByUserId = "System",
-                            DateOfBirth = new DateTime(1990, 10, 23, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FirstName = "Густаво",
-                            IsApproved = true,
-                            LastName = "Бусато",
-                            PositionId = 1,
-                            TeamId = 2
-                        },
-                        new
-                        {
-                            Id = 4,
-                            AddedByUserId = "System",
-                            DateOfBirth = new DateTime(1991, 4, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FirstName = "Фернандо",
-                            IsApproved = true,
-                            LastName = "Каранга",
-                            PositionId = 15,
-                            TeamId = 2
-                        });
                 });
 
             modelBuilder.Entity("SpotTheTop.Core.Entities.Position", b =>
@@ -431,10 +340,87 @@ namespace SpotTheTop.Data.Migrations
                         },
                         new
                         {
+                            Id = 3,
+                            Abbreviation = "RB",
+                            Category = "Defender",
+                            Name = "Right Back"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Abbreviation = "LB",
+                            Category = "Defender",
+                            Name = "Left Back"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Abbreviation = "RWB",
+                            Category = "Defender",
+                            Name = "Right Wing Back"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Abbreviation = "LWB",
+                            Category = "Defender",
+                            Name = "Left Wing Back"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Abbreviation = "DM",
+                            Category = "Midfielder",
+                            Name = "Defensive Midfielder"
+                        },
+                        new
+                        {
                             Id = 8,
                             Abbreviation = "CM",
                             Category = "Midfielder",
                             Name = "Central Midfielder"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Abbreviation = "AM",
+                            Category = "Midfielder",
+                            Name = "Attacking Midfielder"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Abbreviation = "RM",
+                            Category = "Midfielder",
+                            Name = "Right Midfielder"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Abbreviation = "LM",
+                            Category = "Midfielder",
+                            Name = "Left Midfielder"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Abbreviation = "RW",
+                            Category = "Forward",
+                            Name = "Right Winger"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Abbreviation = "LW",
+                            Category = "Forward",
+                            Name = "Left Winger"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Abbreviation = "CF",
+                            Category = "Forward",
+                            Name = "Center Forward"
                         },
                         new
                         {
@@ -504,9 +490,6 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
-                    b.Property<int>("LeagueId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ManagerUserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -522,31 +505,7 @@ namespace SpotTheTop.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LeagueId");
-
                     b.ToTable("Teams");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            City = "София",
-                            IsApproved = true,
-                            LeagueId = 1,
-                            ManagerUserId = "System",
-                            Name = "ПФК Левски",
-                            Stadium = "Георги Аспарухов"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            City = "София",
-                            IsApproved = true,
-                            LeagueId = 1,
-                            ManagerUserId = "System",
-                            Name = "ПФК ЦСКА",
-                            Stadium = "Васил Левски"
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -654,22 +613,6 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("Match");
 
                     b.Navigation("Player");
-                });
-
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Team", b =>
-                {
-                    b.HasOne("SpotTheTop.Core.Entities.League", "League")
-                        .WithMany("Teams")
-                        .HasForeignKey("LeagueId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("League");
-                });
-
-            modelBuilder.Entity("SpotTheTop.Core.Entities.League", b =>
-                {
-                    b.Navigation("Teams");
                 });
 
             modelBuilder.Entity("SpotTheTop.Core.Entities.Match", b =>

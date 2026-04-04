@@ -20,7 +20,7 @@
             _context = context;
         }
 
-        // 1. Вземи всички ОДОБРЕНИ играчи (Достъпно за всички логнати - Отбори, Скаути, Админи)
+        // 1. Вземи всички ОДОБРЕНИ играчи
         [HttpGet]
         public async Task<IActionResult> GetApprovedPlayers()
         {
@@ -31,7 +31,8 @@
                     Id = p.Id,
                     FullName = $"{p.FirstName} {p.LastName}",
                     Age = DateTime.Now.Year - p.DateOfBirth.Year,
-                    Position = p.Position,
+                    // ТУК Е ПРОМЯНАТА: Взимаме свойството Name от обекта Position
+                    Position = p.Position.Name,
                     IsApproved = p.IsApproved,
                     AddedBy = p.AddedByUserId
                 })
@@ -40,15 +41,12 @@
             return Ok(players);
         }
 
-        // 2. ДОБАВЯНЕ НА ИГРАЧ (Само за Админи и Скаути)
+        // 2. ДОБАВЯНЕ НА ИГРАЧ
         [HttpPost]
         [Authorize(Roles = "Admin,Scout")]
         public async Task<IActionResult> AddPlayer([FromBody] PlayerCreateDto dto)
         {
-            // Вземаме имейла на човека, който прави заявката (от JWT токена)
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
-
-            // Проверяваме дали човекът е Админ
             bool isAdmin = User.IsInRole("Admin");
 
             var newPlayer = new Player
@@ -56,7 +54,11 @@
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 DateOfBirth = dto.DateOfBirth,
-                Position = dto.Position,
+
+                // ТУК Е ПРОМЯНАТА: Записваме директно ID-тата
+                PositionId = dto.PositionId,
+                TeamId = dto.TeamId,
+
                 AddedByUserId = currentUserEmail,
                 IsApproved = isAdmin
             };
@@ -81,7 +83,10 @@
                 {
                     Id = p.Id,
                     FullName = $"{p.FirstName} {p.LastName}",
-                    Position = p.Position,
+
+                    // ТУК СЪЩО ОПРАВЯМЕ ПОЗИЦИЯТА
+                    Position = p.Position.Name,
+
                     IsApproved = p.IsApproved,
                     AddedBy = p.AddedByUserId
                 })
