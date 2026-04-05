@@ -31,8 +31,8 @@
                     Id = p.Id,
                     FullName = $"{p.FirstName} {p.LastName}",
                     Age = DateTime.Now.Year - p.DateOfBirth.Year,
-                    // ТУК Е ПРОМЯНАТА: Взимаме свойството Name от обекта Position
                     Position = p.Position.Name,
+                    TeamId = p.TeamId, 
                     IsApproved = p.IsApproved,
                     AddedBy = p.AddedByUserId
                 })

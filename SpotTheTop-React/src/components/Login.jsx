@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import '../index.css'; // Увери се, че пътят до CSS-а ти е правилен!
 
 const API_URL = "https://localhost:44306/api"; 
 
@@ -34,37 +35,35 @@ export default function Login() {
     };
 
     return (
-        <div className="d-flex align-items-center min-vh-100 bg-light">
+        <div className="auth-bg">
             <div className="container">
                 <div className="row justify-content-center">
-                    <div className="col-md-5 col-lg-4">
-                        <div className="card shadow-lg border-0 rounded-4">
-                            <div className="card-body p-5">
-                                <h2 className="text-center mb-4 fw-bold text-primary">SpotTheTop</h2>
-                                <h5 className="text-center mb-4 text-muted">Welcome back</h5>
-                                
-                                {error && <div className="alert alert-danger rounded-3">{error}</div>}
+                    <div className="col-md-6 col-lg-5 col-xl-4">
+                        <div className="card glass-card p-4 p-md-5">
+                            <h2 className="text-center auth-title mb-2">SpotTheTop</h2>
+                            <p className="text-center text-muted mb-4">Welcome back to the pitch</p>
+                            
+                            {error && <div className="alert alert-danger py-2 rounded-3">{error}</div>}
 
-                                <form onSubmit={handleLogin}>
-                                    <div className="form-floating mb-3">
-                                        <input type="email" className="form-control" id="floatingInput" placeholder="name@example.com"
-                                            value={email} onChange={e => setEmail(e.target.value)} required />
-                                        <label htmlFor="floatingInput">Email address</label>
-                                    </div>
-                                    <div className="form-floating mb-4">
-                                        <input type="password" className="form-control" id="floatingPassword" placeholder="Password"
-                                            value={password} onChange={e => setPassword(e.target.value)} required />
-                                        <label htmlFor="floatingPassword">Password</label>
-                                    </div>
-                                    
-                                    <button type="submit" className="btn btn-primary w-100 py-2 mb-3 rounded-3 fw-bold">Sign In</button>
-                                    
-                                    <div className="text-center mt-3">
-                                        <span className="text-muted">Don't have an account? </span>
-                                        <Link to="/register" className="text-decoration-none fw-bold">Sign Up</Link>
-                                    </div>
-                                </form>
-                            </div>
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-3">
+                                    <label className="form-label fw-bold text-secondary small text-uppercase">Email Address</label>
+                                    <input type="email" className="form-control" placeholder="scout@club.com"
+                                        value={email} onChange={e => setEmail(e.target.value)} required />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="form-label fw-bold text-secondary small text-uppercase">Password</label>
+                                    <input type="password" className="form-control" placeholder="••••••••"
+                                        value={password} onChange={e => setPassword(e.target.value)} required />
+                                </div>
+                                
+                                <button type="submit" className="btn btn-success w-100 py-2 mb-4 fw-bold shadow-sm">Secure Login</button>
+                                
+                                <div className="text-center">
+                                    <span className="text-muted small">New to the network? </span>
+                                    <Link to="/register" className="text-success fw-bold text-decoration-none small">Create an account</Link>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

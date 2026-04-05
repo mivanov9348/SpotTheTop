@@ -77,16 +77,41 @@
             if (!result.Succeeded)
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error creating user! Check password rules.");
 
-            // ВИНАГИ даваме базовата роля "User" при регистрация
+            await _userManager.AddClaimAsync(user, new Claim("FirstName", model.FirstName));
+            await _userManager.AddClaimAsync(user, new Claim("LastName", model.LastName));
+
             await _userManager.AddToRoleAsync(user, "User");
 
-            // Ако иска друга роля (Scout, Player, Team), записваме я като "чакаща" заявка (Claim)
             if (!string.IsNullOrEmpty(model.Role) && model.Role != "User" && model.Role != "Admin")
             {
                 await _userManager.AddClaimAsync(user, new Claim("RequestedRole", model.Role));
             }
 
-            return Ok("User created successfully! Waiting for Admin approval if specific role requested.");
+            if (model.TeamId.HasValue)
+            {
+                await _userManager.AddClaimAsync(user, new Claim("RequestedTeamId", model.TeamId.Value.ToString()));
+            }
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var authClaims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, user.UserName),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+    };
+            foreach (var userRole in userRoles)
+            {
+                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+            }
+
+            var token = GetToken(authClaims);
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                expiration = token.ValidTo,
+                roles = userRoles,
+                message = "User created successfully! Waiting for Admin approval if specific role requested."
+            });
         }
 
         // Взима всички потребители, които чакат одобрение за роля
@@ -143,6 +168,33 @@
 
             var errorMessages = string.Join(" | ", result.Errors.Select(e => e.Description));
             return StatusCode(StatusCodes.Status500InternalServerError, $"System Error: {errorMessages}");
+        }
+
+        [HttpGet("all-users")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            var userResponses = new List<UserResponseDto>();
+
+            foreach (var u in users)
+            {
+                var roles = await _userManager.GetRolesAsync(u);
+                var claims = await _userManager.GetClaimsAsync(u);
+
+                userResponses.Add(new UserResponseDto
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    FirstName = claims.FirstOrDefault(c => c.Type == "FirstName")?.Value ?? "",
+                    LastName = claims.FirstOrDefault(c => c.Type == "LastName")?.Value ?? "",
+                    CurrentRoles = roles,
+                    RequestedRole = claims.FirstOrDefault(c => c.Type == "RequestedRole")?.Value,
+                    RequestedTeamId = claims.FirstOrDefault(c => c.Type == "RequestedTeamId")?.Value
+                });
+            }
+
+            return Ok(userResponses);
         }
 
         private JwtSecurityToken GetToken(List<Claim> authClaims)

@@ -107,7 +107,11 @@ var app = builder.Build();
 // --- Seed роли и админ ---
 using (var scope = app.Services.CreateScope())
 {
-    await DbSeeder.SeedRolesAndAdminAsync(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    await DbSeeder.SeedRolesAndAdminAsync(services);
+
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    await DbSeeder.SeedDatabaseAsync(context);
 }
 
 // --- Pipeline ---
