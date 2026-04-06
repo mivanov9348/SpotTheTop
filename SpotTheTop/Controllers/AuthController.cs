@@ -3,10 +3,10 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.EntityFrameworkCore; // НОВО: За ToListAsync
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.IdentityModel.Tokens;
     using SpotTheTop.Core.DTOs;
-    using SpotTheTop.Data; // НОВО: За ApplicationDbContext
+    using SpotTheTop.Data;
     using System.IdentityModel.Tokens.Jwt;
     using System.Security.Claims;
     using System.Text;
@@ -17,9 +17,8 @@
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly ApplicationDbContext _context; // НОВО: Базата данни
+        private readonly ApplicationDbContext _context;
 
-        // Добавяме ApplicationDbContext в конструктора
         public AuthController(UserManager<IdentityUser> userManager, IConfiguration configuration, ApplicationDbContext context)
         {
             _userManager = userManager;
@@ -92,12 +91,17 @@
                 await _userManager.AddClaimAsync(user, new Claim("RequestedTeamId", model.TeamId.Value.ToString()));
             }
 
+            if (model.ClaimedPlayerId.HasValue && model.Role == "Player")
+            {
+                await _userManager.AddClaimAsync(user, new Claim("RequestedPlayerClaim", model.ClaimedPlayerId.Value.ToString()));
+            }
+
             var userRoles = await _userManager.GetRolesAsync(user);
             var authClaims = new List<Claim>
-    {
-        new Claim(ClaimTypes.Name, user.UserName),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-    };
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            };
             foreach (var userRole in userRoles)
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, userRole));
@@ -114,9 +118,8 @@
             });
         }
 
-        // Взима всички потребители, които чакат одобрение за роля
         [HttpGet("pending-roles")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin,Moderator")] // Модераторите също могат да виждат това
         public async Task<IActionResult> GetPendingRoles()
         {
             var pendingRequests = await _context.UserClaims
@@ -131,10 +134,9 @@
             return Ok(pendingRequests);
         }
 
-        // Одобрява чакащата роля
         [HttpPost("approve-role")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ApproveRole([FromBody] PromoteDto model)
+        [Authorize(Roles = "SuperAdmin,Admin,Moderator")]
+        public async Task<IActionResult> ApproveRole([FromBody] ApproveRoleDto model)
         {
             var targetUser = await _userManager.FindByEmailAsync(model.Email);
             if (targetUser == null) return NotFound("User not found!");
@@ -146,32 +148,89 @@
 
             await _userManager.RemoveFromRoleAsync(targetUser, "User");
             await _userManager.AddToRoleAsync(targetUser, reqClaim.Value);
-
             await _userManager.RemoveClaimAsync(targetUser, reqClaim);
+
+            var playerClaim = claims.FirstOrDefault(c => c.Type == "RequestedPlayerClaim");
+            if (playerClaim != null && reqClaim.Value == "Player")
+            {
+                int playerId = int.Parse(playerClaim.Value);
+                var playerEntity = await _context.Players.FindAsync(playerId);
+
+                if (playerEntity != null && playerEntity.ClaimedByUserId == null)
+                {
+                    playerEntity.ClaimedByUserId = targetUser.Id; // СВЪРЗВАМЕ ГИ!
+                    await _context.SaveChangesAsync();
+                }
+                await _userManager.RemoveClaimAsync(targetUser, playerClaim);
+            }
 
             return Ok($"{model.Email} is now officially a {reqClaim.Value}!");
         }
 
-        [HttpPost("promote-to-admin")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> PromoteToAdmin([FromBody] PromoteDto model)
+        [HttpPost("promote")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> PromoteUser([FromBody] PromoteDto model)
         {
             var targetUser = await _userManager.FindByEmailAsync(model.Email);
             if (targetUser == null) return NotFound("User not found!");
 
+            bool isCallerSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isCallerAdmin = User.IsInRole("Admin");
+
+            if ((model.TargetRole == "Admin" || model.TargetRole == "SuperAdmin") && !isCallerSuperAdmin)
+            {
+                return Forbid("Only a SuperAdmin can grant Admin privileges.");
+            }
+
+            if (model.TargetRole == "Moderator" && !isCallerSuperAdmin && !isCallerAdmin)
+            {
+                return Forbid("You do not have permission to grant Moderator privileges.");
+            }
+
             var currentRoles = await _userManager.GetRolesAsync(targetUser);
-            if (currentRoles.Contains("Admin")) return BadRequest("This user is already an Admin.");
+            if (currentRoles.Contains(model.TargetRole))
+                return BadRequest($"User is already a {model.TargetRole}.");
 
-            var result = await _userManager.AddToRoleAsync(targetUser, "Admin");
+            var result = await _userManager.AddToRoleAsync(targetUser, model.TargetRole);
 
-            if (result.Succeeded) return Ok($"Successfully promoted {model.Email} to Admin!");
+            if (result.Succeeded) return Ok($"Successfully promoted {model.Email} to {model.TargetRole}!");
 
-            var errorMessages = string.Join(" | ", result.Errors.Select(e => e.Description));
-            return StatusCode(StatusCodes.Status500InternalServerError, $"System Error: {errorMessages}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "System Error while promoting.");
+        }
+
+        [HttpPost("demote")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DemoteUser([FromBody] PromoteDto model)
+        {
+            var targetUser = await _userManager.FindByEmailAsync(model.Email);
+            if (targetUser == null) return NotFound("User not found!");
+
+            bool isCallerSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isCallerAdmin = User.IsInRole("Admin");
+
+            if (model.TargetRole == "Admin" && !isCallerSuperAdmin)
+            {
+                return Forbid("Only a SuperAdmin can remove Admin privileges.");
+            }
+
+            if (model.TargetRole == "Moderator" && !isCallerSuperAdmin && !isCallerAdmin)
+            {
+                return Forbid("Only Admins and SuperAdmins can remove Moderator privileges.");
+            }
+
+            var currentRoles = await _userManager.GetRolesAsync(targetUser);
+            if (!currentRoles.Contains(model.TargetRole))
+                return BadRequest($"User does not have the {model.TargetRole} role.");
+
+            var result = await _userManager.RemoveFromRoleAsync(targetUser, model.TargetRole);
+
+            if (result.Succeeded) return Ok($"Successfully removed {model.TargetRole} role from {model.Email}!");
+
+            return StatusCode(StatusCodes.Status500InternalServerError, "System Error while demoting.");
         }
 
         [HttpGet("all-users")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _userManager.Users.ToListAsync();

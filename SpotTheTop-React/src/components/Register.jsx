@@ -11,26 +11,31 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('User');
     
-    // Нови State-ове за отборите
     const [teams, setTeams] = useState([]);
     const [selectedTeamId, setSelectedTeamId] = useState('');
+
+    // НОВО: Стейтове за свободните играчи
+    const [unclaimedPlayers, setUnclaimedPlayers] = useState([]);
+    const [selectedPlayerId, setSelectedPlayerId] = useState('');
 
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // Зареждаме отборите при отваряне на страницата
     useEffect(() => {
-        const fetchTeamsForDropdown = async () => {
+        const loadDropdownData = async () => {
             try {
-                const res = await fetch(`${API_URL}/Teams`);
-                if (res.ok) {
-                    setTeams(await res.json());
-                }
+                // Дърпаме отборите
+                const resTeams = await fetch(`${API_URL}/Teams`);
+                if (resTeams.ok) setTeams(await resTeams.json());
+
+                // Дърпаме свободните играчи
+                const resPlayers = await fetch(`${API_URL}/Players/unclaimed`);
+                if (resPlayers.ok) setUnclaimedPlayers(await resPlayers.json());
             } catch (err) {
-                console.log("Error loading teams:", err);
+                console.log("Error loading data:", err);
             }
         };
-        fetchTeamsForDropdown();
+        loadDropdownData();
     }, []);
 
     const handleRegister = async (e) => {
@@ -38,17 +43,15 @@ export default function Register() {
         setError('');
 
         try {
-            // Изпращаме новите полета
             const payload = { 
                 firstName, 
                 lastName, 
                 email, 
                 password, 
                 role,
-                teamId: selectedTeamId ? parseInt(selectedTeamId) : null
+                teamId: selectedTeamId ? parseInt(selectedTeamId) : null,
+                claimedPlayerId: selectedPlayerId ? parseInt(selectedPlayerId) : null // НОВО
             };
-            
-            // TODO: Ако искаме по-късно, можем да пращаме и selectedTeamId към C#
             
             const response = await fetch(`${API_URL}/Auth/register`, {
                 method: 'POST',
@@ -58,22 +61,16 @@ export default function Register() {
 
             if (response.ok) {
                 const data = await response.json();
-                
-                // АВТОМАТИЧЕН ЛОГИН! Запазваме токена и влизаме директно
                 localStorage.setItem('jwtToken', data.token);
                 localStorage.setItem('userRoles', JSON.stringify(data.roles));
-                navigate('/dashboard');
+                navigate('/home');
             } else {
-                const textError = await response.text(); 
-                setError(textError || 'Registration failed.');
+                setError(await response.text() || 'Registration failed.');
             }
         } catch (err) {
             setError('Cannot connect to the server.');
         }
     };
-
-    // Проверяваме дали трябва да покажем менюто за отбори
-    const needsTeamSelection = role === 'Player' || role === 'Team';
 
     return (
         <div className="auth-bg py-5">
@@ -114,7 +111,11 @@ export default function Register() {
 
                                 <div className="mb-4">
                                     <label className="form-label fw-bold text-secondary small text-uppercase">I am a...</label>
-                                    <select className="form-select bg-light" value={role} onChange={e => setRole(e.target.value)}>
+                                    <select className="form-select bg-light" value={role} onChange={e => {
+                                        setRole(e.target.value);
+                                        setSelectedTeamId('');
+                                        setSelectedPlayerId('');
+                                    }}>
                                         <option value="User">Fan / Observer</option>
                                         <option value="Scout">Professional Scout</option>
                                         <option value="Player">Player</option>
@@ -122,22 +123,26 @@ export default function Register() {
                                     </select>
                                 </div>
 
-                                {/* ДИНАМИЧНО ПОЛЕ: Показва се само ако е играч или отбор */}
-                                {needsTeamSelection && (
-                                    <div className="mb-4 p-3 border rounded-3 bg-light">
-                                        <label className="form-label fw-bold text-primary small text-uppercase">Select club affiliation (Optional)</label>
-                                        
-                                        {/* МАХНАХМЕ REQUIRED атрибута */}
-                                        <select className="form-select border-primary" 
-                                                value={selectedTeamId} 
-                                                onChange={e => setSelectedTeamId(e.target.value)}>
-                                            <option value="">Free Agent / No Team</option>
-                                            {teams.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name} ({t.leagueName})</option>
-                                            ))}
+                                {/* ДИНАМИЧНО: Ако е Team */}
+                                {role === 'Team' && (
+                                    <div className="mb-4 p-3 border rounded-3 bg-light border-primary">
+                                        <label className="form-label fw-bold text-primary small text-uppercase">Select club affiliation</label>
+                                        <select className="form-select border-primary" value={selectedTeamId} onChange={e => setSelectedTeamId(e.target.value)}>
+                                            <option value="">-- Choose your team --</option>
+                                            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                         </select>
-                                        
-                                        <div className="form-text small">Leave blank if you don't have a team yet.</div>
+                                    </div>
+                                )}
+
+                                {/* ДИНАМИЧНО: Ако е Player */}
+                                {role === 'Player' && (
+                                    <div className="mb-4 p-3 border rounded-3 bg-warning bg-opacity-10 border-warning">
+                                        <label className="form-label fw-bold text-dark small text-uppercase">Claim Your Player Profile</label>
+                                        <select className="form-select border-warning mb-2" value={selectedPlayerId} onChange={e => setSelectedPlayerId(e.target.value)}>
+                                            <option value="">-- Select your profile (Optional) --</option>
+                                            {unclaimedPlayers.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                                        </select>
+                                        <div className="form-text small text-dark">If your profile is not in the list, leave this blank. You can be added later.</div>
                                     </div>
                                 )}
 

@@ -3,7 +3,10 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
+    using SpotTheTop.Core.DTOs;
+    using SpotTheTop.Core.Entities;
     using SpotTheTop.Data;
+    using System.Security.Claims;
 
     [Route("api/[controller]")]
     [ApiController]
@@ -39,6 +42,32 @@
                 .ToListAsync();
 
             return Ok(teams);
+        }
+
+        // НОВО: Добавяне на Отбор
+        [HttpPost]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> AddTeam([FromBody] TeamCreateDto dto)
+        {
+            var leagueExists = await _context.Leagues.AnyAsync(l => l.Id == dto.LeagueId);
+            if (!leagueExists) return BadRequest("Invalid League ID.");
+
+            var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var team = new Team
+            {
+                Name = dto.Name,
+                City = dto.City,
+                Stadium = dto.Stadium,
+                LeagueId = dto.LeagueId,
+                IsApproved = true,
+                ManagerUserId = currentUserEmail
+            };
+
+            _context.Teams.Add(team);
+            await _context.SaveChangesAsync();
+
+            return Ok($"Team '{team.Name}' added successfully!");
         }
     }
 }

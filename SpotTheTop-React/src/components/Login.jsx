@@ -25,7 +25,7 @@ export default function Login() {
                 const data = await response.json();
                 localStorage.setItem('jwtToken', data.token);
                 localStorage.setItem('userRoles', JSON.stringify(data.roles));
-                navigate('/dashboard');
+                navigate('/home');
             } else {
                 setError('Invalid email or password!');
             }

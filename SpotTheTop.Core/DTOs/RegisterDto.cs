@@ -19,6 +19,8 @@ namespace SpotTheTop.Core.DTOs
         [Required]
         public string LastName { get; set; } = string.Empty;
 
+        public int? ClaimedPlayerId { get; set; }
+
         public int? TeamId { get; set; }
     }
 }

@@ -110,5 +110,60 @@
 
             return Ok($"Играч {player.FirstName} {player.LastName} беше успешно одобрен!");
         }
+
+        // 1.5 Вземи ДЕТАЙЛИ за конкретен играч
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPlayerDetails(int id)
+        {
+            var player = await _context.Players
+                .Include(p => p.Position)
+                .Include(p => p.Team)
+                    .ThenInclude(t => t.League)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (player == null) return NotFound("Player not found.");
+
+            // Ако играчът не е одобрен, само Админ/Модератор или този, който го е добавил, може да го види
+            if (!player.IsApproved)
+            {
+                var currentUserEmail = User.FindFirstValue(ClaimTypes.Name);
+                if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin") && !User.IsInRole("Moderator") && player.AddedByUserId != currentUserEmail)
+                {
+                    return Forbid();
+                }
+            }
+
+            var dto = new PlayerDetailsDto
+            {
+                Id = player.Id,
+                FirstName = player.FirstName,
+                LastName = player.LastName,
+                Age = DateTime.Now.Year - player.DateOfBirth.Year,
+                DateOfBirthFormatted = player.DateOfBirth.ToString("dd MMM yyyy"),
+                PositionName = player.Position.Name,
+                PositionCategory = player.Position.Category,
+                TeamName = player.Team?.Name ?? "Free Agent",
+                LeagueName = player.Team?.League?.Name
+            };
+
+            return Ok(dto);
+        }
+
+        [HttpGet("unclaimed")]
+        [AllowAnonymous] 
+        public async Task<IActionResult> GetUnclaimedPlayers()
+        {
+            var players = await _context.Players
+                .Include(p => p.Position)
+                .Where(p => p.IsApproved == true && p.ClaimedByUserId == null)
+                .Select(p => new
+                {
+                    Id = p.Id,
+                    FullName = $"{p.FirstName} {p.LastName} ({p.Position.Abbreviation})"
+                })
+                .ToListAsync();
+
+            return Ok(players);
+        }
     }
 }

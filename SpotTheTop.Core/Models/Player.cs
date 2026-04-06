@@ -1,8 +1,7 @@
-﻿
+﻿using System.ComponentModel.DataAnnotations;
+
 namespace SpotTheTop.Core.Entities
 {
-    using System.ComponentModel.DataAnnotations;
-
     public class Player
     {
         public int Id { get; set; }
@@ -16,15 +15,15 @@ namespace SpotTheTop.Core.Entities
         public DateTime DateOfBirth { get; set; }
 
         public int PositionId { get; set; }
-        public Position Position { get; set; } = null!; 
+        public Position Position { get; set; } = null!;
 
         public int? TeamId { get; set; }
-        public Team? Team { get; set; } 
+        public Team? Team { get; set; }
 
         public bool IsApproved { get; set; } = false;
 
         public string AddedByUserId { get; set; } = string.Empty;
 
-        // public ICollection<ScoutingReport> Reports { get; set; } = new List<ScoutingReport>();
+        public string? ClaimedByUserId { get; set; }
     }
 }

@@ -10,39 +10,37 @@
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class LeaguesController : ControllerBase
+    public class PositionsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        public LeaguesController(ApplicationDbContext context)
+        public PositionsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLeagues()
+        public async Task<IActionResult> GetPositions()
         {
-            var leagues = await _context.Leagues
-                .Select(l => new { l.Id, l.Name, l.Country })
-                .ToListAsync();
-
-            return Ok(leagues);
+            var positions = await _context.Positions.ToListAsync();
+            return Ok(positions);
         }
 
         [HttpPost]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> AddLeague([FromBody] LeagueCreateDto dto)
+        public async Task<IActionResult> AddPosition([FromBody] PositionCreateDto dto)
         {
-            var league = new League
+            var pos = new Position
             {
                 Name = dto.Name,
-                Country = dto.Country
+                Abbreviation = dto.Abbreviation,
+                Category = dto.Category
             };
 
-            _context.Leagues.Add(league);
+            _context.Positions.Add(pos);
             await _context.SaveChangesAsync();
 
-            return Ok($"League '{league.Name}' added successfully!");
+            return Ok($"Position '{pos.Name}' added successfully!");
         }
     }
 }

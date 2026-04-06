@@ -1,12 +1,10 @@
 ﻿namespace SpotTheTop.Core.DTOs
 {
     using System.ComponentModel.DataAnnotations;
-    public class PromoteDto
+
+    public class ApproveRoleDto
     {
         [Required]
         public string Email { get; set; } = string.Empty;
-
-        [Required]
-        public string TargetRole { get; set; } = string.Empty;
     }
 }

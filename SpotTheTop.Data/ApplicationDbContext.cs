@@ -11,19 +11,18 @@
             : base(options)
         {
         }
-
         public DbSet<Player> Players { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<League> Leagues { get; set; }
         public DbSet<Position> Positions { get; set; }
         public DbSet<Match> Matches { get; set; }
-        public DbSet<ScoutingReport> ScoutingReports { get; set; }
+        public DbSet<MatchAppearance> MatchAppearances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Лига -> Отбори
+
             builder.Entity<Team>()
                 .HasOne(t => t.League)
                 .WithMany(l => l.Teams)
@@ -52,6 +51,24 @@
                 .HasOne(m => m.AwayTeam)
                 .WithMany()
                 .HasForeignKey(m => m.AwayTeamId)
+                .OnDelete(DeleteBehavior.Restrict);
+               
+            builder.Entity<MatchAppearance>()
+                .HasOne(ma => ma.Match)
+                .WithMany()
+                .HasForeignKey(ma => ma.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<MatchAppearance>()
+                .HasOne(ma => ma.Player)
+                .WithMany()
+                .HasForeignKey(ma => ma.PlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MatchAppearance>()
+                .HasOne(ma => ma.Team)
+                .WithMany()
+                .HasForeignKey(ma => ma.TeamId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

@@ -111,7 +111,6 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedRolesAndAdminAsync(services);
 
     var context = services.GetRequiredService<ApplicationDbContext>();
-    await DbSeeder.SeedDatabaseAsync(context);
 }
 
 // --- Pipeline ---
