@@ -12,8 +12,8 @@ using SpotTheTop.Data;
 namespace SpotTheTop.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260406104130_Initial")]
-    partial class Initial
+    [Migration("20260407061955_InitialClean")]
+    partial class InitialClean
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -223,7 +223,7 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.League", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.League", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -246,7 +246,7 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("Leagues");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Match", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Match", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -272,6 +272,9 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<DateTime>("MatchDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -285,10 +288,12 @@ namespace SpotTheTop.Data.Migrations
 
                     b.HasIndex("LeagueId");
 
+                    b.HasIndex("SeasonId");
+
                     b.ToTable("Matches");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.MatchAppearance", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.MatchAppearance", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -341,7 +346,7 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("MatchAppearances");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Player", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Player", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -364,6 +369,9 @@ namespace SpotTheTop.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("HeightCm")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
@@ -372,10 +380,25 @@ namespace SpotTheTop.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Nationality")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("PositionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("PreferredFoot")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ProfileImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WeightKg")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -387,7 +410,7 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("Players");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Position", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Position", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -415,7 +438,39 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("Positions");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Team", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Season", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LeagueId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeagueId");
+
+                    b.ToTable("Seasons");
+                });
+
+            modelBuilder.Entity("SpotTheTop.Core.Models.Team", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -504,24 +559,30 @@ namespace SpotTheTop.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Match", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Match", b =>
                 {
-                    b.HasOne("SpotTheTop.Core.Entities.Team", "AwayTeam")
+                    b.HasOne("SpotTheTop.Core.Models.Team", "AwayTeam")
                         .WithMany()
                         .HasForeignKey("AwayTeamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SpotTheTop.Core.Entities.Team", "HomeTeam")
+                    b.HasOne("SpotTheTop.Core.Models.Team", "HomeTeam")
                         .WithMany()
                         .HasForeignKey("HomeTeamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SpotTheTop.Core.Entities.League", "League")
+                    b.HasOne("SpotTheTop.Core.Models.League", "League")
                         .WithMany()
                         .HasForeignKey("LeagueId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SpotTheTop.Core.Models.Season", "Season")
+                        .WithMany("Matches")
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("AwayTeam");
@@ -529,23 +590,25 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("HomeTeam");
 
                     b.Navigation("League");
+
+                    b.Navigation("Season");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.MatchAppearance", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.MatchAppearance", b =>
                 {
-                    b.HasOne("SpotTheTop.Core.Entities.Match", "Match")
-                        .WithMany()
+                    b.HasOne("SpotTheTop.Core.Models.Match", "Match")
+                        .WithMany("Appearances")
                         .HasForeignKey("MatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SpotTheTop.Core.Entities.Player", "Player")
-                        .WithMany()
+                    b.HasOne("SpotTheTop.Core.Models.Player", "Player")
+                        .WithMany("Appearances")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SpotTheTop.Core.Entities.Team", "Team")
+                    b.HasOne("SpotTheTop.Core.Models.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -558,15 +621,15 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Player", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Player", b =>
                 {
-                    b.HasOne("SpotTheTop.Core.Entities.Position", "Position")
+                    b.HasOne("SpotTheTop.Core.Models.Position", "Position")
                         .WithMany("Players")
                         .HasForeignKey("PositionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SpotTheTop.Core.Entities.Team", "Team")
+                    b.HasOne("SpotTheTop.Core.Models.Team", "Team")
                         .WithMany("Players")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -576,9 +639,20 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Team", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Season", b =>
                 {
-                    b.HasOne("SpotTheTop.Core.Entities.League", "League")
+                    b.HasOne("SpotTheTop.Core.Models.League", "League")
+                        .WithMany("Seasons")
+                        .HasForeignKey("LeagueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("League");
+                });
+
+            modelBuilder.Entity("SpotTheTop.Core.Models.Team", b =>
+                {
+                    b.HasOne("SpotTheTop.Core.Models.League", "League")
                         .WithMany("Teams")
                         .HasForeignKey("LeagueId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -587,17 +661,34 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("League");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.League", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.League", b =>
                 {
+                    b.Navigation("Seasons");
+
                     b.Navigation("Teams");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Position", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Match", b =>
+                {
+                    b.Navigation("Appearances");
+                });
+
+            modelBuilder.Entity("SpotTheTop.Core.Models.Player", b =>
+                {
+                    b.Navigation("Appearances");
+                });
+
+            modelBuilder.Entity("SpotTheTop.Core.Models.Position", b =>
                 {
                     b.Navigation("Players");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Entities.Team", b =>
+            modelBuilder.Entity("SpotTheTop.Core.Models.Season", b =>
+                {
+                    b.Navigation("Matches");
+                });
+
+            modelBuilder.Entity("SpotTheTop.Core.Models.Team", b =>
                 {
                     b.Navigation("Players");
                 });

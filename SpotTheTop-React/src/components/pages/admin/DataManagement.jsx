@@ -13,6 +13,9 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const [positions, setPositions] = useState([]);
     const [recentPlayers, setRecentPlayers] = useState([]);
 
+    // ХАРДКОДНАТИ КАТЕГОРИИ (Само за формата "Add Position")
+    const baseCategories = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+
     useEffect(() => {
         loadLocalData();
     }, []);
@@ -20,13 +23,13 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const loadLocalData = async () => {
         const token = localStorage.getItem('jwtToken');
         
-        // Дърпаме реалните позиции от базата
+        // Дърпаме реалните позиции от базата (нужни са за формата Add Player и за списъка)
         fetch(`${API_URL}/Positions`, { headers: { 'Authorization': `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => setPositions(data))
             .catch(err => console.log(err));
 
-        // Дърпаме вече одобрените играчи, за да ги покажем в списъка
+        // Дърпаме вече одобрените играчи
         fetch(`${API_URL}/Players`, { headers: { 'Authorization': `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => setRecentPlayers(data))
@@ -47,7 +50,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
             });
             if (res.ok) {
                 setNewLeague({ name: '', country: '' });
-                loadData(); // Презарежда глобалните лиги
+                loadData(); 
             } else alert(await res.text());
         } catch(err) { alert("Error adding league."); }
     };
@@ -63,7 +66,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
             });
             if (res.ok) {
                 setNewTeam({ name: '', city: '', stadium: '', leagueId: '' });
-                loadData(); // Презарежда глобалните отбори
+                loadData(); 
             } else alert(await res.text());
         } catch(err) { alert("Error adding team."); }
     };
@@ -79,7 +82,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
             });
             if (res.ok) {
                 setNewPosition({ name: '', abbreviation: '', category: '' });
-                loadLocalData(); // Презареждаме локалните позиции
+                loadLocalData(); // Презареждаме позициите от базата
             } else alert(await res.text());
         } catch(err) { alert("Error adding position."); }
     };
@@ -99,15 +102,12 @@ export default function DataManagement({ leagues, teams, loadData }) {
             });
             if (res.ok) {
                 setNewPlayer({ firstName: '', lastName: '', dateOfBirth: '', positionId: '', teamId: '' });
-                loadLocalData(); // Презареждаме играчите
-                loadData(); // Ако има pending, да се ъпдейтнат и те
+                loadLocalData(); 
+                loadData(); 
             } else alert(await res.text());
         } catch(err) { alert("Error adding player."); }
     };
 
-    // ==========================================
-    // ВИЗУАЛИЗАЦИЯ НА ФОРМИТЕ (СЪС СПИСЪЦИ)
-    // ==========================================
     return (
         <div className="row g-4">
             
@@ -124,7 +124,6 @@ export default function DataManagement({ leagues, teams, loadData }) {
                             <button type="submit" className="btn btn-primary w-100 fw-bold shadow-sm mb-3">Save League</button>
                         </form>
                     </div>
-                    {/* Списък със скрол */}
                     <div className="card-footer bg-white border-top-0 pt-0 mt-auto">
                         <h6 className="text-muted small fw-bold mb-2 border-bottom pb-1">Recently Added</h6>
                         <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
@@ -159,7 +158,6 @@ export default function DataManagement({ leagues, teams, loadData }) {
                             <button type="submit" className="btn btn-success w-100 fw-bold shadow-sm mb-3">Save Team</button>
                         </form>
                     </div>
-                    {/* Списък със скрол */}
                     <div className="card-footer bg-white border-top-0 pt-0 mt-auto">
                         <h6 className="text-muted small fw-bold mb-2 border-bottom pb-1">Recently Added</h6>
                         <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
@@ -187,15 +185,14 @@ export default function DataManagement({ leagues, teams, loadData }) {
                                 value={newPosition.abbreviation} onChange={e => setNewPosition({...newPosition, abbreviation: e.target.value})} />
                             <select className="form-select mb-3" required value={newPosition.category} onChange={e => setNewPosition({...newPosition, category: e.target.value})}>
                                 <option value="">-- Select Category --</option>
-                                <option value="Goalkeeper">Goalkeeper</option>
-                                <option value="Defender">Defender</option>
-                                <option value="Midfielder">Midfielder</option>
-                                <option value="Forward">Forward</option>
+                                {/* ИЗПОЛЗВАМЕ ХАРДКОДНАТИЯ МАСИВ ЗА КАТЕГОРИИ */}
+                                {baseCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
                             </select>
                             <button type="submit" className="btn btn-info text-white w-100 fw-bold shadow-sm mb-3">Save Position</button>
                         </form>
                     </div>
-                    {/* Списък със скрол */}
                     <div className="card-footer bg-white border-top-0 pt-0 mt-auto">
                         <h6 className="text-muted small fw-bold mb-2 border-bottom pb-1">Recently Added</h6>
                         <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
@@ -230,6 +227,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
                             </div>
                             <select className="form-select form-select-sm mb-2 border-warning" required value={newPlayer.positionId} onChange={e => setNewPlayer({...newPlayer, positionId: e.target.value})}>
                                 <option value="">-- Position --</option>
+                                {/* ИЗПОЛЗВАМЕ ВСИЧКИ ПОЗИЦИИ ОТ БАЗАТА */}
                                 {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                             <select className="form-select form-select-sm mb-3" value={newPlayer.teamId} onChange={e => setNewPlayer({...newPlayer, teamId: e.target.value})}>
@@ -239,7 +237,6 @@ export default function DataManagement({ leagues, teams, loadData }) {
                             <button type="submit" className="btn btn-warning w-100 fw-bold shadow-sm mb-3">Save Player</button>
                         </form>
                     </div>
-                    {/* Списък със скрол */}
                     <div className="card-footer bg-white border-top-0 pt-0 mt-auto">
                         <h6 className="text-muted small fw-bold mb-2 border-bottom pb-1">Recently Added</h6>
                         <div style={{ maxHeight: '150px', overflowY: 'auto' }}>

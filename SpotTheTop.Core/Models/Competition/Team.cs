@@ -1,4 +1,4 @@
-﻿namespace SpotTheTop.Core.Entities
+﻿namespace SpotTheTop.Core.Models
 {
     using System.ComponentModel.DataAnnotations;
 

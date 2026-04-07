@@ -1,7 +1,10 @@
 ﻿namespace SpotTheTop.Api
 {
     using Microsoft.AspNetCore.Identity;
-    using Microsoft.Extensions.DependencyInjection; // Нужно за GetRequiredService
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.DependencyInjection;
+    using SpotTheTop.Core.Models;
+    using SpotTheTop.Data;
 
     public static class DbSeeder
     {
@@ -47,6 +50,22 @@
                 if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
                     await userManager.AddToRoleAsync(adminUser, "Admin");
             }
+        }
+
+        public static async Task SeedBasePositionsAsync(ApplicationDbContext context)
+        {
+            if (await context.Positions.AnyAsync()) return; 
+
+            var positions = new List<Position>
+            {
+                new Position { Name = "Goalkeeper", Abbreviation = "GK", Category = "Goalkeeper" },
+                new Position { Name = "Defender", Abbreviation = "DEF", Category = "Defender" },
+                new Position { Name = "Midfielder", Abbreviation = "MID", Category = "Midfielder" },
+                new Position { Name = "Forward", Abbreviation = "FWD", Category = "Forward" }
+            };
+
+            await context.Positions.AddRangeAsync(positions);
+            await context.SaveChangesAsync();
         }
     }
 }

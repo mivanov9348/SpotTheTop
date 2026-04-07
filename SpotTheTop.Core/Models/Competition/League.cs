@@ -1,7 +1,7 @@
-﻿namespace SpotTheTop.Core.Entities
+﻿namespace SpotTheTop.Core.Models
 {
+    using SpotTheTop.Core.Models;
     using System.ComponentModel.DataAnnotations;
-
     public class League
     {
         public int Id { get; set; }
@@ -13,5 +13,8 @@
         public string Country { get; set; } = string.Empty;
 
         public ICollection<Team> Teams { get; set; } = new List<Team>();
+
+        // ТОВА ЛИПСВАШЕ:
+        public ICollection<Season> Seasons { get; set; } = new List<Season>();
     }
 }
