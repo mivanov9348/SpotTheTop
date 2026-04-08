@@ -23,7 +23,13 @@
         public async Task<IActionResult> GetLeagues()
         {
             var leagues = await _context.Leagues
-                .Select(l => new { l.Id, l.Name, l.Country })
+                .Select(l => new {
+                    l.Id,
+                    l.Name,
+                    l.Country,
+                    TeamsCount = l.Teams.Count,
+                    PlayersCount = l.Teams.SelectMany(t => t.Players).Count()
+                })
                 .ToListAsync();
 
             return Ok(leagues);

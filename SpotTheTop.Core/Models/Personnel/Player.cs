@@ -1,7 +1,7 @@
 ﻿namespace SpotTheTop.Core.Models
 {
-
     using System.ComponentModel.DataAnnotations;
+
     public class Player
     {
         public int Id { get; set; }
@@ -21,10 +21,19 @@
         public string? PreferredFoot { get; set; }
 
         [Required, MaxLength(50)]
-        public string Nationality { get; set; } = string.Empty; 
+        public string Nationality { get; set; } = string.Empty;
 
-        public string? ProfileImageUrl { get; set; } 
-   
+        public string? ProfileImageUrl { get; set; }
+
+        public int? JerseyNumber { get; set; } 
+
+        public decimal? MarketValueEuro { get; set; } 
+
+        public DateTime? ContractEndDate { get; set; } 
+
+        [MaxLength(100)]
+        public string? AgentName { get; set; } 
+
         public int PositionId { get; set; }
         public Position Position { get; set; } = null!;
 
