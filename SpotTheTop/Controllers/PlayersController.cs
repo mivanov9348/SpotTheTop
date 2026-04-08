@@ -21,22 +21,20 @@
         }
 
         [HttpGet]
-        [AllowAnonymous] // Оставяме го достъпен, за да се виждат класациите и без логин
+        [AllowAnonymous] 
         public async Task<IActionResult> GetApprovedPlayers([FromQuery] int? teamId, [FromQuery] int? leagueId)
         {
             var query = _context.Players
                 .Include(p => p.Position)
                 .Include(p => p.Team)
-                .Include(p => p.Appearances) // НОВО: Включваме участията в мачове, за да сметнем статистиката
+                .Include(p => p.Appearances)
                 .Where(p => p.IsApproved == true);
 
-            // Филтър по конкретен отбор
             if (teamId.HasValue)
             {
                 query = query.Where(p => p.TeamId == teamId.Value);
             }
 
-            // Филтър по лига (взимаме всички играчи, чийто отбор е в тази лига)
             if (leagueId.HasValue)
             {
                 query = query.Where(p => p.Team != null && p.Team.LeagueId == leagueId.Value);
@@ -66,7 +64,6 @@
             return Ok(players);
         }
 
-        // 2. ДОБАВЯНЕ НА ИГРАЧ
         [HttpPost]
         [Authorize(Roles = "Admin,Scout")]
         public async Task<IActionResult> AddPlayer([FromBody] PlayerCreateDto dto)
@@ -80,7 +77,6 @@
                 LastName = dto.LastName,
                 DateOfBirth = dto.DateOfBirth,
 
-                // ТУК Е ПРОМЯНАТА: Записваме директно ID-тата
                 PositionId = dto.PositionId,
                 TeamId = dto.TeamId,
 
@@ -97,7 +93,6 @@
                 return Ok($"Скауте, играчът е добавен успешно, но чака одобрение от Админ!");
         }
 
-        // 3. СПИСЪК С ЧАКАЩИ ИГРАЧИ (Само за Админ)
         [HttpGet("pending")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetPendingPlayers()
@@ -109,7 +104,6 @@
                     Id = p.Id,
                     FullName = $"{p.FirstName} {p.LastName}",
 
-                    // ТУК СЪЩО ОПРАВЯМЕ ПОЗИЦИЯТА
                     Position = p.Position.Name,
 
                     IsApproved = p.IsApproved,
@@ -120,7 +114,6 @@
             return Ok(pendingPlayers);
         }
 
-        // 4. ОДОБРЯВАНЕ НА ИГРАЧ (Само за Админ)
         [HttpPatch("{id}/approve")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApprovePlayer(int id)
@@ -136,7 +129,6 @@
             return Ok($"Играч {player.FirstName} {player.LastName} беше успешно одобрен!");
         }
 
-        // 1.5 Вземи ДЕТАЙЛИ за конкретен играч
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPlayerDetails(int id)
         {
@@ -148,7 +140,6 @@
 
             if (player == null) return NotFound("Player not found.");
 
-            // Ако играчът не е одобрен, само Админ/Модератор или този, който го е добавил, може да го види
             if (!player.IsApproved)
             {
                 var currentUserEmail = User.FindFirstValue(ClaimTypes.Name);
