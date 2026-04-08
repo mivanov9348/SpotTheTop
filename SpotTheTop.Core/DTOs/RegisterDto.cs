@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace SpotTheTop.Core.DTOs
+﻿namespace SpotTheTop.Core.DTOs
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class RegisterDto
     {
         [Required]

@@ -20,22 +20,47 @@
             _context = context;
         }
 
-        // 1. Вземи всички ОДОБРЕНИ играчи
         [HttpGet]
-        public async Task<IActionResult> GetApprovedPlayers()
+        [AllowAnonymous] // Оставяме го достъпен, за да се виждат класациите и без логин
+        public async Task<IActionResult> GetApprovedPlayers([FromQuery] int? teamId, [FromQuery] int? leagueId)
         {
-            var players = await _context.Players
-                .Where(p => p.IsApproved == true)
+            var query = _context.Players
+                .Include(p => p.Position)
+                .Include(p => p.Team)
+                .Include(p => p.Appearances) // НОВО: Включваме участията в мачове, за да сметнем статистиката
+                .Where(p => p.IsApproved == true);
+
+            // Филтър по конкретен отбор
+            if (teamId.HasValue)
+            {
+                query = query.Where(p => p.TeamId == teamId.Value);
+            }
+
+            // Филтър по лига (взимаме всички играчи, чийто отбор е в тази лига)
+            if (leagueId.HasValue)
+            {
+                query = query.Where(p => p.Team != null && p.Team.LeagueId == leagueId.Value);
+            }
+
+            var players = await query
                 .Select(p => new PlayerResponseDto
                 {
                     Id = p.Id,
                     FullName = $"{p.FirstName} {p.LastName}",
                     Age = DateTime.Now.Year - p.DateOfBirth.Year,
                     Position = p.Position.Name,
-                    TeamId = p.TeamId, 
+                    TeamId = p.TeamId,
+                    TeamName = p.Team != null ? p.Team.Name : "Free Agent",
                     IsApproved = p.IsApproved,
-                    AddedBy = p.AddedByUserId
+                    AddedBy = p.AddedByUserId,
+
+                    TotalGoals = p.Appearances.Sum(a => (int?)a.Goals) ?? 0,
+                    TotalAssists = p.Appearances.Sum(a => (int?)a.Assists) ?? 0,
+
+                    HeightCm = p.HeightCm,
+                    PreferredFoot = p.PreferredFoot
                 })
+                .OrderByDescending(p => p.TotalGoals)
                 .ToListAsync();
 
             return Ok(players);
@@ -164,6 +189,31 @@
                 .ToListAsync();
 
             return Ok(players);
+        }
+
+        [HttpPost("bulk")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> ImportPlayers([FromBody] List<PlayerCreateDto> dtos)
+        {
+            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
+
+            var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var players = dtos.Select(d => new SpotTheTop.Core.Models.Player
+            {
+                FirstName = d.FirstName,
+                LastName = d.LastName,
+                DateOfBirth = d.DateOfBirth,
+                PositionId = d.PositionId,
+                TeamId = d.TeamId,
+                AddedByUserId = currentUserEmail,
+                IsApproved = true
+            }).ToList();
+
+            await _context.Players.AddRangeAsync(players);
+            await _context.SaveChangesAsync();
+
+            return Ok($"{players.Count} players imported successfully!");
         }
     }
 }

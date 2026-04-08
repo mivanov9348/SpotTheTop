@@ -44,7 +44,25 @@
             return Ok(teams);
         }
 
-        // НОВО: Добавяне на Отбор
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTeamDetails(int id)
+        {
+            var team = await _context.Teams
+                .Include(t => t.League)
+                .Where(t => t.Id == id)
+                .Select(t => new {
+                    t.Id,
+                    t.Name,
+                    t.City,
+                    t.Stadium,
+                    LeagueName = t.League.Name
+                })
+                .FirstOrDefaultAsync();
+
+            if (team == null) return NotFound("Team not found.");
+            return Ok(team);
+        }
+
         [HttpPost]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> AddTeam([FromBody] TeamCreateDto dto)
@@ -68,6 +86,30 @@
             await _context.SaveChangesAsync();
 
             return Ok($"Team '{team.Name}' added successfully!");
+        }
+
+        [HttpPost("bulk")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> ImportTeams([FromBody] List<TeamCreateDto> dtos)
+        {
+            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
+
+            var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var teams = dtos.Select(d => new SpotTheTop.Core.Models.Team
+            {
+                Name = d.Name,
+                City = d.City,
+                Stadium = d.Stadium,
+                LeagueId = d.LeagueId,
+                IsApproved = true,
+                ManagerUserId = currentUserEmail
+            }).ToList();
+
+            await _context.Teams.AddRangeAsync(teams);
+            await _context.SaveChangesAsync();
+
+            return Ok($"{teams.Count} teams imported successfully!");
         }
     }
 }

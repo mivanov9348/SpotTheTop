@@ -42,5 +42,24 @@
 
             return Ok($"Position '{pos.Name}' added successfully!");
         }
+
+        [HttpPost("bulk")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> ImportPositions([FromBody] List<PositionCreateDto> dtos)
+        {
+            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
+
+            var positions = dtos.Select(d => new SpotTheTop.Core.Models.Position
+            {
+                Name = d.Name,
+                Abbreviation = d.Abbreviation,
+                Category = d.Category
+            }).ToList();
+
+            await _context.Positions.AddRangeAsync(positions);
+            await _context.SaveChangesAsync();
+
+            return Ok($"{positions.Count} positions imported successfully!");
+        }
     }
 }

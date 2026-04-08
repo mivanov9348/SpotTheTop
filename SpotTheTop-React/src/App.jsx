@@ -7,6 +7,8 @@ import Home from './components/pages/Home';
 import LeaguesPage from './components/pages/LeaguesPage';
 import PlayersPage from './components/pages/PlayersPage';
 import AdminPage from './components/pages/admin/AdminPage';
+import LeagueDetailsPage from './components/pages/LeaguesDetaislPage'; 
+import TeamDetailsPage from './components/pages/TeamDetailsPage'; 
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/feed" element={<div className="text-center p-5"><h2>📰 Community Feed</h2><p>Coming soon...</p></div>} />
           <Route path="/leagues" element={<LeaguesPage />} />
+          <Route path="/leagues/:id" element={<LeagueDetailsPage />} /> 
+          <Route path="/teams/:id" element={<TeamDetailsPage />} /> {/* НОВИЯТ МАРШРУТ */}
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/admin" element={<AdminPage />} /> 
         </Route>
