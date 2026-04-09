@@ -15,10 +15,13 @@
         public DbSet<Player> Players { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<League> Leagues { get; set; }
-        public DbSet<Season> Seasons { get; set; } 
+        public DbSet<Season> Seasons { get; set; }
         public DbSet<Position> Positions { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<MatchAppearance> MatchAppearances { get; set; }
+
+        // НОВО: Добавяме класиранията
+        public DbSet<TeamSeasonStanding> TeamSeasonStandings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -30,19 +33,30 @@
                 .HasForeignKey(t => t.LeagueId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // НОВО: Връзка между Сезон и Лига
             builder.Entity<Season>()
                 .HasOne(s => s.League)
                 .WithMany(l => l.Seasons)
                 .HasForeignKey(s => s.LeagueId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // НОВО: Връзка между Мач и Сезон
+            // НОВО: Връзки за класирането
+            builder.Entity<TeamSeasonStanding>()
+                .HasOne(ts => ts.Season)
+                .WithMany(s => s.Standings)
+                .HasForeignKey(ts => ts.SeasonId)
+                .OnDelete(DeleteBehavior.Cascade); // Ако изтрием сезон, трием и класирането му
+
+            builder.Entity<TeamSeasonStanding>()
+                .HasOne(ts => ts.Team)
+                .WithMany(t => t.SeasonStandings)
+                .HasForeignKey(ts => ts.TeamId)
+                .OnDelete(DeleteBehavior.Restrict); // Не трием отбор автоматично, ако изтрием класирането му
+
             builder.Entity<Match>()
                 .HasOne(m => m.Season)
                 .WithMany(s => s.Matches)
                 .HasForeignKey(m => m.SeasonId)
-                .OnDelete(DeleteBehavior.Restrict); // Не трием мачове автоматично, ако изтрием сезон
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Player>()
                 .HasOne(p => p.Position)
@@ -70,13 +84,13 @@
 
             builder.Entity<MatchAppearance>()
                 .HasOne(ma => ma.Match)
-                .WithMany(m => m.Appearances) // НОВО: Обратната връзка, която добавихме
+                .WithMany(m => m.Appearances)
                 .HasForeignKey(ma => ma.MatchId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<MatchAppearance>()
                 .HasOne(ma => ma.Player)
-                .WithMany(p => p.Appearances) 
+                .WithMany(p => p.Appearances)
                 .HasForeignKey(ma => ma.PlayerId)
                 .OnDelete(DeleteBehavior.Restrict);
 

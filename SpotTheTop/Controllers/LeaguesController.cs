@@ -70,6 +70,48 @@
             return Ok(league);
         }
 
+        [HttpGet("{id}/standings")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetLeagueStandings(int id, [FromQuery] int? seasonId)
+        {
+            var season = seasonId.HasValue
+                ? await _context.Seasons.FirstOrDefaultAsync(s => s.Id == seasonId.Value && s.LeagueId == id)
+                : await _context.Seasons.Where(s => s.LeagueId == id && s.IsActive)
+                                        .OrderByDescending(s => s.StartDate)
+                                        .FirstOrDefaultAsync();
+
+            if (season == null)
+                return NotFound("No active season found for this league.");
+
+            var standings = await _context.TeamSeasonStandings
+                .Include(ts => ts.Team)
+                .Where(ts => ts.SeasonId == season.Id)
+                .Select(ts => new
+                {
+                    TeamId = ts.TeamId,
+                    TeamName = ts.Team.Name,
+                    MatchesPlayed = ts.MatchesPlayed,
+                    Wins = ts.Wins,
+                    Draws = ts.Draws,
+                    Losses = ts.Losses,
+                    GoalsFor = ts.GoalsFor,
+                    GoalsAgainst = ts.GoalsAgainst,
+                    GoalDifference = ts.GoalsFor - ts.GoalsAgainst, 
+                    Points = ts.Points
+                })
+                .OrderByDescending(ts => ts.Points)
+                .ThenByDescending(ts => ts.GoalDifference)
+                .ThenByDescending(ts => ts.GoalsFor)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                SeasonId = season.Id,
+                SeasonName = season.Name,
+                Standings = standings
+            });
+        }
+
         [HttpPost("bulk")]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ImportLeagues([FromBody] List<LeagueCreateDto> dtos)

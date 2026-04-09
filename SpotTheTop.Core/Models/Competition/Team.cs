@@ -21,5 +21,8 @@
         public League League { get; set; } = null!;
 
         public ICollection<Player> Players { get; set; } = new List<Player>();
+
+        // НОВО: История на класиранията през годините
+        public ICollection<TeamSeasonStanding> SeasonStandings { get; set; } = new List<TeamSeasonStanding>();
     }
 }

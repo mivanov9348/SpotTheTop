@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpotTheTop.Data;
 
@@ -11,9 +12,11 @@ using SpotTheTop.Data;
 namespace SpotTheTop.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409060154_PlayerDetails")]
+    partial class PlayerDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -518,50 +521,6 @@ namespace SpotTheTop.Data.Migrations
                     b.ToTable("Teams");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Models.TeamSeasonStanding", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Draws")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GoalsAgainst")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GoalsFor")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Losses")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MatchesPlayed")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SeasonId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TeamId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Wins")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SeasonId");
-
-                    b.HasIndex("TeamId");
-
-                    b.ToTable("TeamSeasonStandings");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -715,25 +674,6 @@ namespace SpotTheTop.Data.Migrations
                     b.Navigation("League");
                 });
 
-            modelBuilder.Entity("SpotTheTop.Core.Models.TeamSeasonStanding", b =>
-                {
-                    b.HasOne("SpotTheTop.Core.Models.Season", "Season")
-                        .WithMany("Standings")
-                        .HasForeignKey("SeasonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SpotTheTop.Core.Models.Team", "Team")
-                        .WithMany("SeasonStandings")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Season");
-
-                    b.Navigation("Team");
-                });
-
             modelBuilder.Entity("SpotTheTop.Core.Models.League", b =>
                 {
                     b.Navigation("Seasons");
@@ -759,15 +699,11 @@ namespace SpotTheTop.Data.Migrations
             modelBuilder.Entity("SpotTheTop.Core.Models.Season", b =>
                 {
                     b.Navigation("Matches");
-
-                    b.Navigation("Standings");
                 });
 
             modelBuilder.Entity("SpotTheTop.Core.Models.Team", b =>
                 {
                     b.Navigation("Players");
-
-                    b.Navigation("SeasonStandings");
                 });
 #pragma warning restore 612, 618
         }

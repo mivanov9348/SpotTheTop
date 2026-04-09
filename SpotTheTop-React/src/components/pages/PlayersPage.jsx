@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PlayerFilters from './PlayerFilters'; // Увери се, че пътят е правилен
-import PlayerProfileModal from '../dashboard-tabs/PlayerProfileModal'; 
+import PlayerProfileModal from '../PlayerProfileModal'; // Увери се, че пътят е правилен
 
 const API_URL = "https://localhost:44306/api";
 
