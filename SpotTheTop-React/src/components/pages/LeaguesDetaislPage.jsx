@@ -12,13 +12,11 @@ export default function LeagueDetailsPage() {
     const [league, setLeague] = useState(null);
     const [teams, setTeams] = useState([]);
     const [leaguePlayers, setLeaguePlayers] = useState([]);
-    
-    // НОВО: Стейт за класирането
     const [standingsData, setStandingsData] = useState(null); 
     
     const [isLoading, setIsLoading] = useState(true);
 
-    // UI Стейтове (Standings е първи по подразбиране!)
+    // UI Стейтове
     const [activeTab, setActiveTab] = useState('standings'); 
     const [selectedPlayer, setSelectedPlayer] = useState(null);
 
@@ -30,10 +28,9 @@ export default function LeagueDetailsPage() {
         const fetchTeams = fetch(`${API_URL}/Teams?leagueId=${id}`, { headers }).then(res => res.json());
         const fetchPlayers = fetch(`${API_URL}/Players?leagueId=${id}`, { headers }).then(res => res.json());
         
-        // НОВО: Дърпаме класирането
         const fetchStandings = fetch(`${API_URL}/Leagues/${id}/standings`, { headers })
             .then(res => res.ok ? res.json() : null)
-            .catch(() => null); // Ако няма сезон, връщаме null без да гърми страницата
+            .catch(() => null); 
 
         Promise.all([fetchLeague, fetchTeams, fetchPlayers, fetchStandings])
             .then(([leagueData, teamsData, playersData, standingsResponse]) => {
@@ -196,56 +193,71 @@ export default function LeagueDetailsPage() {
             {/* ТАБ 3: СТАТИСТИКА (STATS) */}
             {activeTab === 'stats' && (
                 <div className="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
-                    <div className="card-header bg-white border-bottom py-3">
-                        <h6 className="mb-0 fw-bold text-muted text-uppercase">Top Scorers & Assists</h6>
+                    <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h6 className="mb-0 fw-bold text-muted text-uppercase">League Top Performers</h6>
                     </div>
-                    <div className="table-responsive">
-                        <table className="table table-hover align-middle mb-0">
-                            <thead className="table-light text-uppercase small fw-bold text-muted">
-                                <tr>
-                                    <th className="px-4 py-3">#</th>
-                                    <th className="py-3">Player</th>
-                                    <th className="py-3">Club</th>
-                                    <th className="py-3 text-center">⚽ Goals</th>
-                                    <th className="py-3 text-center">🤝 Assists</th>
-                                    <th className="py-3 text-end px-4">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {leaguePlayers.length === 0 ? (
-                                    <tr><td colSpan="6" className="text-center py-5 text-muted">No players found in this league.</td></tr>
-                                ) : (
-                                    leaguePlayers.map((p, index) => (
-                                        <tr key={p.id}>
-                                            <td className="px-4 text-muted fw-bold">{index + 1}</td>
-                                            <td className="py-3">
-                                                <div className="d-flex align-items-center">
-                                                    <div className="bg-dark rounded-circle d-flex justify-content-center align-items-center text-white me-3 fw-bold" style={{ width: '35px', height: '35px', fontSize: '14px' }}>
+                    <div className="card-body">
+                        {leaguePlayers.length === 0 ? (
+                            <div className="text-center py-5 text-muted">No players found in this league.</div>
+                        ) : (
+                            <div className="row g-4">
+                                {/* ТОП ГОЛМАЙСТОРИ */}
+                                <div className="col-md-6">
+                                    <h6 className="fw-bold text-dark mb-3"><i className="bi bi-star-fill text-warning me-2"></i>Top Scorers</h6>
+                                    <ul className="list-group list-group-flush">
+                                        {/* Бекендът вече ги връща сортирани по голове */}
+                                        {leaguePlayers.slice(0, 5).map((p, index) => (
+                                            <li key={`goal_${p.id}`} className="list-group-item px-0 py-3 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                                <div className="d-flex align-items-center cursor-pointer" onClick={() => viewProfile(p.id)}>
+                                                    <span className="fw-bold text-muted me-3" style={{ width: '20px' }}>{index + 1}.</span>
+                                                    <div className="bg-dark rounded-circle d-flex justify-content-center align-items-center text-white me-3 fw-bold" style={{ width: '35px', height: '35px', fontSize: '12px' }}>
                                                         {p.fullName.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <div className="fw-bold text-dark">{p.fullName}</div>
-                                                        <div className="small text-muted">{p.position}</div>
+                                                        <div className="fw-bold text-dark hover-primary">{p.fullName}</div>
+                                                        <div className="small text-muted">{p.teamName}</div>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <Link to={`/teams/${p.teamId}`} className="fw-bold text-primary text-decoration-none">
-                                                    {p.teamName}
-                                                </Link>
-                                            </td>
-                                            <td className="text-center fw-bold text-success fs-5">{p.totalGoals}</td>
-                                            <td className="text-center fw-bold text-info fs-5">{p.totalAssists}</td>
-                                            <td className="text-end px-4">
-                                                <button onClick={() => viewProfile(p.id)} className="btn btn-sm btn-outline-dark fw-bold rounded-pill px-3">
-                                                    Profile
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                                <div className="fw-bold fs-5 text-success">{p.totalGoals} ⚽</div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* ТОП АСИСТЕНТИ */}
+                                <div className="col-md-6">
+                                    <h6 className="fw-bold text-dark mb-3"><i className="bi bi-lightning-fill text-info me-2"></i>Top Assists</h6>
+                                    <ul className="list-group list-group-flush">
+                                        {/* Сортираме копие на масива по асистенции за този списък */}
+                                        {[...leaguePlayers].sort((a, b) => b.totalAssists - a.totalAssists).slice(0, 5).map((p, index) => (
+                                            <li key={`assist_${p.id}`} className="list-group-item px-0 py-3 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                                <div className="d-flex align-items-center cursor-pointer" onClick={() => viewProfile(p.id)}>
+                                                    <span className="fw-bold text-muted me-3" style={{ width: '20px' }}>{index + 1}.</span>
+                                                    <div className="bg-dark rounded-circle d-flex justify-content-center align-items-center text-white me-3 fw-bold" style={{ width: '35px', height: '35px', fontSize: '12px' }}>
+                                                        {p.fullName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="fw-bold text-dark hover-primary">{p.fullName}</div>
+                                                        <div className="small text-muted">{p.teamName}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="fw-bold fs-5 text-info">{p.totalAssists} 🤝</div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div className="col-12 mt-4 text-center">
+                                    {/* БУТОН КЪМ ГЛОБАЛНАТА ТЪРСАЧКА */}
+                                    <button 
+                                        onClick={() => navigate(`/players?leagueId=${id}`)} 
+                                        className="btn btn-dark px-5 py-2 fw-bold rounded-pill shadow-sm"
+                                    >
+                                        View All Player Statistics <i className="bi bi-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -258,6 +270,8 @@ export default function LeagueDetailsPage() {
                 .card-hover-effect { transition: transform 0.2s ease, box-shadow 0.2s ease; }
                 .card-hover-effect:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
                 .text-shadow { text-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+                .cursor-pointer { cursor: pointer; }
+                .hover-primary:hover { color: #0d6efd !important; }
             `}} />
         </div>
     );

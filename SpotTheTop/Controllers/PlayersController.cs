@@ -10,7 +10,7 @@
 
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Заключваме целия контролер по подразбиране
+    [Authorize] 
     public class PlayersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -21,24 +21,18 @@
         }
 
         [HttpGet]
-        [AllowAnonymous] 
-        public async Task<IActionResult> GetApprovedPlayers([FromQuery] int? teamId, [FromQuery] int? leagueId)
+        [AllowAnonymous]
+        public async Task<IActionResult> GetApprovedPlayers([FromQuery] int? teamId, [FromQuery] int? leagueId, [FromQuery] int? seasonId)
         {
             var query = _context.Players
                 .Include(p => p.Position)
                 .Include(p => p.Team)
                 .Include(p => p.Appearances)
+                    .ThenInclude(a => a.Match) 
                 .Where(p => p.IsApproved == true);
 
-            if (teamId.HasValue)
-            {
-                query = query.Where(p => p.TeamId == teamId.Value);
-            }
-
-            if (leagueId.HasValue)
-            {
-                query = query.Where(p => p.Team != null && p.Team.LeagueId == leagueId.Value);
-            }
+            if (teamId.HasValue) query = query.Where(p => p.TeamId == teamId.Value);
+            if (leagueId.HasValue) query = query.Where(p => p.Team != null && p.Team.LeagueId == leagueId.Value);
 
             var players = await query
                 .Select(p => new PlayerResponseDto
@@ -51,12 +45,16 @@
                     TeamName = p.Team != null ? p.Team.Name : "Free Agent",
                     IsApproved = p.IsApproved,
                     AddedBy = p.AddedByUserId,
-
-                    TotalGoals = p.Appearances.Sum(a => (int?)a.Goals) ?? 0,
-                    TotalAssists = p.Appearances.Sum(a => (int?)a.Assists) ?? 0,
-
                     HeightCm = p.HeightCm,
-                    PreferredFoot = p.PreferredFoot
+                    PreferredFoot = p.PreferredFoot,
+
+ 
+                    MatchesPlayed = p.Appearances.Count(a => !seasonId.HasValue || a.Match.SeasonId == seasonId.Value),
+                    MinutesPlayed = p.Appearances.Where(a => !seasonId.HasValue || a.Match.SeasonId == seasonId.Value).Sum(a => (int?)a.MinutesPlayed) ?? 0,
+                    TotalGoals = p.Appearances.Where(a => !seasonId.HasValue || a.Match.SeasonId == seasonId.Value).Sum(a => (int?)a.Goals) ?? 0,
+                    TotalAssists = p.Appearances.Where(a => !seasonId.HasValue || a.Match.SeasonId == seasonId.Value).Sum(a => (int?)a.Assists) ?? 0,
+                    TotalYellowCards = p.Appearances.Where(a => !seasonId.HasValue || a.Match.SeasonId == seasonId.Value).Sum(a => (int?)a.YellowCards) ?? 0,
+                    TotalRedCards = p.Appearances.Count(a => (!seasonId.HasValue || a.Match.SeasonId == seasonId.Value) && a.IsRedCard)
                 })
                 .OrderByDescending(p => p.TotalGoals)
                 .ToListAsync();

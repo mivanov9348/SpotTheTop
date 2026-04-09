@@ -86,7 +86,7 @@
             var standings = await _context.TeamSeasonStandings
                 .Include(ts => ts.Team)
                 .Where(ts => ts.SeasonId == season.Id)
-                .Select(ts => new
+                .Select(ts => new StandingResponseDto 
                 {
                     TeamId = ts.TeamId,
                     TeamName = ts.Team.Name,
@@ -96,7 +96,7 @@
                     Losses = ts.Losses,
                     GoalsFor = ts.GoalsFor,
                     GoalsAgainst = ts.GoalsAgainst,
-                    GoalDifference = ts.GoalsFor - ts.GoalsAgainst, 
+                    GoalDifference = ts.GoalsFor - ts.GoalsAgainst,
                     Points = ts.Points
                 })
                 .OrderByDescending(ts => ts.Points)

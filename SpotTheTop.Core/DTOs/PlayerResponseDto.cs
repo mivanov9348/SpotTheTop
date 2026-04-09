@@ -8,15 +8,18 @@
         public string Position { get; set; } = string.Empty;
 
         public int? TeamId { get; set; }
-        public string TeamName { get; set; } = string.Empty; 
+        public string TeamName { get; set; } = string.Empty;
 
         public bool IsApproved { get; set; }
         public string AddedBy { get; set; } = string.Empty;
 
-        public int TotalGoals { get; set; }
-        public int TotalAssists { get; set; }
-
         public int? HeightCm { get; set; }
         public string? PreferredFoot { get; set; }
+        public int MatchesPlayed { get; set; }
+        public int MinutesPlayed { get; set; }
+        public int TotalGoals { get; set; }
+        public int TotalAssists { get; set; }
+        public int TotalYellowCards { get; set; }
+        public int TotalRedCards { get; set; }
     }
 }
