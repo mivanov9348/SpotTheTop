@@ -19,9 +19,10 @@
         public DbSet<Position> Positions { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<MatchAppearance> MatchAppearances { get; set; }
-
-        // НОВО: Добавяме класиранията
         public DbSet<TeamSeasonStanding> TeamSeasonStandings { get; set; }
+        public DbSet<Post> Posts { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Like> Likes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -39,18 +40,17 @@
                 .HasForeignKey(s => s.LeagueId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // НОВО: Връзки за класирането
             builder.Entity<TeamSeasonStanding>()
                 .HasOne(ts => ts.Season)
                 .WithMany(s => s.Standings)
                 .HasForeignKey(ts => ts.SeasonId)
-                .OnDelete(DeleteBehavior.Cascade); // Ако изтрием сезон, трием и класирането му
+                .OnDelete(DeleteBehavior.Cascade); 
 
             builder.Entity<TeamSeasonStanding>()
                 .HasOne(ts => ts.Team)
                 .WithMany(t => t.SeasonStandings)
                 .HasForeignKey(ts => ts.TeamId)
-                .OnDelete(DeleteBehavior.Restrict); // Не трием отбор автоматично, ако изтрием класирането му
+                .OnDelete(DeleteBehavior.Restrict); 
 
             builder.Entity<Match>()
                 .HasOne(m => m.Season)
@@ -99,6 +99,18 @@
                 .WithMany()
                 .HasForeignKey(ma => ma.TeamId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Comment>()
+        .HasOne(c => c.Post)
+        .WithMany(p => p.Comments)
+        .HasForeignKey(c => c.PostId)
+        .OnDelete(DeleteBehavior.Cascade); 
+
+            builder.Entity<Like>()
+                .HasOne(l => l.Post)
+                .WithMany(p => p.Likes)
+                .HasForeignKey(l => l.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

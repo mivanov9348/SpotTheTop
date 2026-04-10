@@ -9,6 +9,7 @@ import PlayersPage from './components/pages/PlayersPage';
 import AdminPage from './components/pages/admin/AdminPage';
 import LeagueDetailsPage from './components/pages/LeaguesDetaislPage'; 
 import TeamDetailsPage from './components/pages/TeamDetailsPage'; 
+import FeedPage from './components/pages/FeedPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
 
         <Route element={<Layout />}>
           <Route path="/home" element={<Home />} />
+          <Route path="/feed" element={<FeedPage />} />
           <Route path="/feed" element={<div className="text-center p-5"><h2>📰 Community Feed</h2><p>Coming soon...</p></div>} />
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/:id" element={<LeagueDetailsPage />} /> 
