@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import '../index.css'; // Увери се, че пътят до CSS-а ти е правилен!
+import '../index.css'; 
 
 const API_URL = "https://localhost:44306/api"; 
 
 export default function Login() {
-    const [email, setEmail] = useState('');
+    const [usernameOrEmail, setUsernameOrEmail] = useState(''); // НОВО
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function Login() {
             const response = await fetch(`${API_URL}/Auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ usernameOrEmail, password }) // НОВО
             });
 
             if (response.ok) {
@@ -27,7 +27,7 @@ export default function Login() {
                 localStorage.setItem('userRoles', JSON.stringify(data.roles));
                 navigate('/home');
             } else {
-                setError('Invalid email or password!');
+                setError('Invalid credentials!');
             }
         } catch (err) {
             setError('Cannot connect to the server.');
@@ -47,9 +47,9 @@ export default function Login() {
 
                             <form onSubmit={handleLogin}>
                                 <div className="mb-3">
-                                    <label className="form-label fw-bold text-secondary small text-uppercase">Email Address</label>
-                                    <input type="email" className="form-control" placeholder="scout@club.com"
-                                        value={email} onChange={e => setEmail(e.target.value)} required />
+                                    <label className="form-label fw-bold text-secondary small text-uppercase">Email or Username</label>
+                                    <input type="text" className="form-control" placeholder="scout@club.com or username"
+                                        value={usernameOrEmail} onChange={e => setUsernameOrEmail(e.target.value)} required />
                                 </div>
                                 <div className="mb-4">
                                     <label className="form-label fw-bold text-secondary small text-uppercase">Password</label>

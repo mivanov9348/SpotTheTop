@@ -1,15 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
-import Layout from './components/Layout';
+import Layout from './components/layout/Layout';
 
-import Home from './components/pages/Home';
-import LeaguesPage from './components/pages/LeaguesPage';
-import PlayersPage from './components/pages/PlayersPage';
+import Home from './components/pages/home/Home';
+import LeaguesPage from './components/pages/leagues/LeaguesPage';
+import PlayersPage from './components/pages/players/PlayersPage';
 import AdminPage from './components/pages/admin/AdminPage';
-import LeagueDetailsPage from './components/pages/LeaguesDetaislPage'; // Бележка: Имаш печатна грешка в името на файла (DetaislPage), но го оставям така, за да не се счупи при теб!
-import TeamDetailsPage from './components/pages/TeamDetailsPage'; 
-import FeedPage from './components/pages/FeedPage';
+import LeagueDetailsPage from './components/pages/leagues/LeagueDetailsPage'; // Бележка: Имаш печатна грешка в името на файла (DetaislPage), но го оставям така, за да не се счупи при теб!
+import TeamDetailsPage from './components/pages/teams/TeamDetailsPage'; 
+import FeedPage from './components/pages/feed/FeedPage';
 
 function App() {
   return (

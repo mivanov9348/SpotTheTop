@@ -7,6 +7,7 @@ const API_URL = "https://localhost:44306/api";
 export default function Register() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [username, setUsername] = useState(''); // НОВО
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('User');
@@ -14,7 +15,6 @@ export default function Register() {
     const [teams, setTeams] = useState([]);
     const [selectedTeamId, setSelectedTeamId] = useState('');
 
-    // НОВО: Стейтове за свободните играчи
     const [unclaimedPlayers, setUnclaimedPlayers] = useState([]);
     const [selectedPlayerId, setSelectedPlayerId] = useState('');
 
@@ -24,11 +24,9 @@ export default function Register() {
     useEffect(() => {
         const loadDropdownData = async () => {
             try {
-                // Дърпаме отборите
                 const resTeams = await fetch(`${API_URL}/Teams`);
                 if (resTeams.ok) setTeams(await resTeams.json());
 
-                // Дърпаме свободните играчи
                 const resPlayers = await fetch(`${API_URL}/Players/unclaimed`);
                 if (resPlayers.ok) setUnclaimedPlayers(await resPlayers.json());
             } catch (err) {
@@ -46,11 +44,12 @@ export default function Register() {
             const payload = { 
                 firstName, 
                 lastName, 
+                username, // НОВО
                 email, 
                 password, 
                 role,
                 teamId: selectedTeamId ? parseInt(selectedTeamId) : null,
-                claimedPlayerId: selectedPlayerId ? parseInt(selectedPlayerId) : null // НОВО
+                claimedPlayerId: selectedPlayerId ? parseInt(selectedPlayerId) : null 
             };
             
             const response = await fetch(`${API_URL}/Auth/register`, {
@@ -97,6 +96,16 @@ export default function Register() {
                                     </div>
                                 </div>
 
+                                {/* НОВО: USERNAME */}
+                                <div className="mb-3">
+                                    <label className="form-label fw-bold text-secondary small text-uppercase">Username</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text bg-light text-muted">@</span>
+                                        <input type="text" className="form-control" required placeholder="cool_scout99"
+                                               value={username} onChange={e => setUsername(e.target.value.replace(/\s+/g, ''))} />
+                                    </div>
+                                </div>
+
                                 <div className="mb-3">
                                     <label className="form-label fw-bold text-secondary small text-uppercase">Email Address</label>
                                     <input type="email" className="form-control" required
@@ -123,7 +132,6 @@ export default function Register() {
                                     </select>
                                 </div>
 
-                                {/* ДИНАМИЧНО: Ако е Team */}
                                 {role === 'Team' && (
                                     <div className="mb-4 p-3 border rounded-3 bg-light border-primary">
                                         <label className="form-label fw-bold text-primary small text-uppercase">Select club affiliation</label>
@@ -134,7 +142,6 @@ export default function Register() {
                                     </div>
                                 )}
 
-                                {/* ДИНАМИЧНО: Ако е Player */}
                                 {role === 'Player' && (
                                     <div className="mb-4 p-3 border rounded-3 bg-warning bg-opacity-10 border-warning">
                                         <label className="form-label fw-bold text-dark small text-uppercase">Claim Your Player Profile</label>

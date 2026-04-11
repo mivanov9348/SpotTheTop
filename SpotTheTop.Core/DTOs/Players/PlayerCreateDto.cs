@@ -1,4 +1,4 @@
-﻿namespace SpotTheTop.Core.DTOs
+﻿namespace SpotTheTop.Core.DTOs.Players
 {
     using System.ComponentModel.DataAnnotations;
 

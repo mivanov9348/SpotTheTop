@@ -29,7 +29,16 @@
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            // НОВО: Проверяваме дали е въведен Имейл или Username
+            IdentityUser? user = null;
+            if (model.UsernameOrEmail.Contains("@"))
+            {
+                user = await _userManager.FindByEmailAsync(model.UsernameOrEmail);
+            }
+            else
+            {
+                user = await _userManager.FindByNameAsync(model.UsernameOrEmail);
+            }
 
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
@@ -37,7 +46,7 @@
 
                 var authClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.Name, user.UserName), // Вземаме Username-а
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
 
@@ -55,7 +64,7 @@
                     roles = userRoles
                 });
             }
-            return Unauthorized("Invalid email or password!");
+            return Unauthorized("Invalid email/username or password!");
         }
 
         [HttpPost("register")]
@@ -63,13 +72,17 @@
         {
             var userExists = await _userManager.FindByEmailAsync(model.Email);
             if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, "User already exists!");
+                return StatusCode(StatusCodes.Status500InternalServerError, "User with this email already exists!");
+
+            var usernameExists = await _userManager.FindByNameAsync(model.Username);
+            if (usernameExists != null)
+                return StatusCode(StatusCodes.Status500InternalServerError, "This Username is already taken!");
 
             IdentityUser user = new IdentityUser()
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Email
+                UserName = model.Username
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
