@@ -1,4 +1,4 @@
-﻿namespace SpotTheTop.Core.DTOs
+﻿namespace SpotTheTop.Core.DTOs.Auth
 {
 
     using System.ComponentModel.DataAnnotations;

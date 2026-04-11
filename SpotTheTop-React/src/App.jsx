@@ -7,7 +7,7 @@ import Home from './components/pages/Home';
 import LeaguesPage from './components/pages/LeaguesPage';
 import PlayersPage from './components/pages/PlayersPage';
 import AdminPage from './components/pages/admin/AdminPage';
-import LeagueDetailsPage from './components/pages/LeaguesDetaislPage'; 
+import LeagueDetailsPage from './components/pages/LeaguesDetaislPage'; // Бележка: Имаш печатна грешка в името на файла (DetaislPage), но го оставям така, за да не се счупи при теб!
 import TeamDetailsPage from './components/pages/TeamDetailsPage'; 
 import FeedPage from './components/pages/FeedPage';
 
@@ -20,11 +20,13 @@ function App() {
 
         <Route element={<Layout />}>
           <Route path="/home" element={<Home />} />
+          
+          {/* ТУК ОСТАВЯМЕ САМО ИСТИНСКИЯ FEED PAGE */}
           <Route path="/feed" element={<FeedPage />} />
-          <Route path="/feed" element={<div className="text-center p-5"><h2>📰 Community Feed</h2><p>Coming soon...</p></div>} />
+          
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/:id" element={<LeagueDetailsPage />} /> 
-          <Route path="/teams/:id" element={<TeamDetailsPage />} /> {/* НОВИЯТ МАРШРУТ */}
+          <Route path="/teams/:id" element={<TeamDetailsPage />} /> 
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/admin" element={<AdminPage />} /> 
         </Route>

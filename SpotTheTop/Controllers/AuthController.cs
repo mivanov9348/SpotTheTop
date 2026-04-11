@@ -5,7 +5,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.IdentityModel.Tokens;
-    using SpotTheTop.Core.DTOs;
+    using SpotTheTop.Core.DTOs.Auth;
     using SpotTheTop.Data;
     using System.IdentityModel.Tokens.Jwt;
     using System.Security.Claims;

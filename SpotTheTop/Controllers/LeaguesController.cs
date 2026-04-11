@@ -4,6 +4,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SpotTheTop.Core.DTOs;
+    using SpotTheTop.Core.DTOs.Leagues;
     using SpotTheTop.Core.Models;
     using SpotTheTop.Data;
 

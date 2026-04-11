@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SpotTheTop.Core.DTOs
+namespace SpotTheTop.Core.DTOs.Players
 {
     public class PositionCreateDto
     {

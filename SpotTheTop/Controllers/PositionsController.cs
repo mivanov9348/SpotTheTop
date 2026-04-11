@@ -3,7 +3,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
-    using SpotTheTop.Core.DTOs;
+    using SpotTheTop.Core.DTOs.Players;
     using SpotTheTop.Core.Models;
     using SpotTheTop.Data;
 
