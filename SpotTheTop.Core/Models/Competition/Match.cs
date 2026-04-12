@@ -1,6 +1,5 @@
 ﻿namespace SpotTheTop.Core.Models
 {
-
     using System.ComponentModel.DataAnnotations;
     public class Match
     {
@@ -11,6 +10,8 @@
 
         public int SeasonId { get; set; }
         public Season Season { get; set; } = null!;
+
+        public int Round { get; set; } = 1;
 
         public int HomeTeamId { get; set; }
         public Team HomeTeam { get; set; } = null!;
@@ -24,7 +25,7 @@
         public int? AwayScore { get; set; }
 
         [Required, MaxLength(20)]
-        public string Status { get; set; } = "Scheduled";
+        public string Status { get; set; } = "Scheduled"; 
 
         public ICollection<MatchAppearance> Appearances { get; set; } = new List<MatchAppearance>();
     }

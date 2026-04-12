@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom'; 
 import PlayerFilters from './PlayerFilters'; 
-import PlayerProfileModal from '../../PlayerProfileModal';
+import PlayerProfileModal from '../../pages/PlayerProfileModal';
 
 const API_URL = "https://localhost:44306/api";
 

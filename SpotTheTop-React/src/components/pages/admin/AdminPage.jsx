@@ -5,32 +5,25 @@ import AccessControl from './AccessControl';
 const API_URL = "https://localhost:44306/api";
 
 export default function AdminPage() {
-    // 1. Глобални стейтове за данните в Админ панела
     const [allUsers, setAllUsers] = useState([]);
     const [pendingPlayers, setPendingPlayers] = useState([]);
     const [pendingRoles, setPendingRoles] = useState([]);
     const [leagues, setLeagues] = useState([]);
     const [teams, setTeams] = useState([]);
 
-    // UI Стейт: Кой таб е отворен
     const [adminTab, setAdminTab] = useState('access'); 
 
     const userRoles = JSON.parse(localStorage.getItem('userRoles') || "[]");
     const canManageUsers = userRoles.includes('SuperAdmin') || userRoles.includes('Admin');
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
-    // 2. Функция, която тегли ВСИЧКИ нужни данни
     const loadData = () => {
         const token = localStorage.getItem('jwtToken');
         
         if (canManageUsers) {
             fetch(`${API_URL}/Auth/all-users`, { headers: { 'Authorization': `Bearer ${token}` } })
-                .then(res => res.json())
-                .then(data => setAllUsers(data))
-                .catch(err => console.error(err));
+                .then(res => res.json()).then(data => setAllUsers(data)).catch(err => console.error(err));
         }
 
         fetch(`${API_URL}/Players/pending`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -48,11 +41,10 @@ export default function AdminPage() {
 
     return (
         <div>
-            {/* ТАБОВЕ ЗА НАВИГАЦИЯ В АДМИН ПАНЕЛА */}
-            <ul className="nav nav-pills mb-4 pb-3 border-bottom">
+            <ul className="nav nav-pills mb-4 pb-3 border-bottom border-secondary">
                 <li className="nav-item">
                     <button 
-                        className={`nav-link fw-bold px-4 rounded-pill me-2 ${adminTab === 'access' ? 'active shadow-sm' : 'text-dark'}`} 
+                        className={`nav-link fw-bold px-4 rounded-pill me-2 shadow-none ${adminTab === 'access' ? 'active shadow-sm' : 'text-light opacity-75'}`} 
                         onClick={() => setAdminTab('access')}
                     >
                         <i className="bi bi-shield-lock me-2"></i> Access Control
@@ -61,7 +53,7 @@ export default function AdminPage() {
                 {canManageUsers && (
                     <li className="nav-item">
                         <button 
-                            className={`nav-link fw-bold px-4 rounded-pill ${adminTab === 'catalog' ? 'active bg-success shadow-sm' : 'text-success'}`} 
+                            className={`nav-link fw-bold px-4 rounded-pill shadow-none ${adminTab === 'catalog' ? 'active bg-success shadow-sm text-white' : 'text-success opacity-75'}`} 
                             onClick={() => setAdminTab('catalog')}
                         >
                             <i className="bi bi-database-add me-2"></i> Catalog (Data Entry)
@@ -70,22 +62,13 @@ export default function AdminPage() {
                 )}
             </ul>
 
-            {/* РЕНДИРАНЕ НА ИЗБРАНИЯ КОМПОНЕНТ */}
             {adminTab === 'access' ? (
                 <AccessControl 
-                    allUsers={allUsers}
-                    pendingRoles={pendingRoles}
-                    pendingPlayers={pendingPlayers}
-                    currentUserRoles={userRoles}
-                    canManageUsers={canManageUsers}
-                    loadData={loadData} 
+                    allUsers={allUsers} pendingRoles={pendingRoles} pendingPlayers={pendingPlayers}
+                    currentUserRoles={userRoles} canManageUsers={canManageUsers} loadData={loadData} 
                 />
             ) : (
-                <DataManagement 
-                    leagues={leagues}
-                    teams={teams}
-                    loadData={loadData}
-                />
+                <DataManagement leagues={leagues} teams={teams} loadData={loadData} />
             )}
         </div>
     );
