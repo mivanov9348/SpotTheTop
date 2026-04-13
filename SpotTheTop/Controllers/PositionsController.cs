@@ -61,5 +61,24 @@
 
             return Ok($"{positions.Count} positions imported successfully!");
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DeletePosition(int id)
+        {
+            var position = await _context.Positions.FindAsync(id);
+            if (position == null) return NotFound("Position not found.");
+
+            try
+            {
+                _context.Positions.Remove(position);
+                await _context.SaveChangesAsync();
+                return Ok("Position deleted successfully!");
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest("Cannot delete this Position because there are Players assigned to it.");
+            }
+        }
     }
 }

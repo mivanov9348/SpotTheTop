@@ -111,5 +111,24 @@
 
             return Ok($"{teams.Count} teams imported successfully!");
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DeleteTeam(int id)
+        {
+            var team = await _context.Teams.FindAsync(id);
+            if (team == null) return NotFound("Team not found.");
+
+            try
+            {
+                _context.Teams.Remove(team);
+                await _context.SaveChangesAsync();
+                return Ok("Team deleted successfully!");
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest("Cannot delete this Team because it has Players, Matches, or Standings attached to it.");
+            }
+        }
     }
 }

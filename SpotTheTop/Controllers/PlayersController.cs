@@ -205,5 +205,24 @@
 
             return Ok($"{players.Count} players imported successfully!");
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DeletePlayer(int id)
+        {
+            var player = await _context.Players.FindAsync(id);
+            if (player == null) return NotFound("Player not found.");
+
+            try
+            {
+                _context.Players.Remove(player);
+                await _context.SaveChangesAsync();
+                return Ok("Player deleted successfully!");
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest("Cannot delete this Player because they have recorded match appearances.");
+            }
+        }
     }
 }

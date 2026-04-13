@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DataManagement from './DataManagement';
 import AccessControl from './AccessControl';
+import DataOverview from './DataOverview'; // НОВО ИМПОРТИРАНЕ
 
 const API_URL = "https://localhost:44306/api";
 
@@ -41,7 +42,8 @@ export default function AdminPage() {
 
     return (
         <div>
-            <ul className="nav nav-pills mb-4 pb-3 border-bottom border-secondary">
+            {/* ТАБОВЕ ЗА НАВИГАЦИЯ В АДМИН ПАНЕЛА */}
+            <ul className="nav nav-pills mb-4 pb-3 border-bottom border-secondary flex-nowrap overflow-auto" style={{ whiteSpace: 'nowrap' }}>
                 <li className="nav-item">
                     <button 
                         className={`nav-link fw-bold px-4 rounded-pill me-2 shadow-none ${adminTab === 'access' ? 'active shadow-sm' : 'text-light opacity-75'}`} 
@@ -51,25 +53,42 @@ export default function AdminPage() {
                     </button>
                 </li>
                 {canManageUsers && (
-                    <li className="nav-item">
-                        <button 
-                            className={`nav-link fw-bold px-4 rounded-pill shadow-none ${adminTab === 'catalog' ? 'active bg-success shadow-sm text-white' : 'text-success opacity-75'}`} 
-                            onClick={() => setAdminTab('catalog')}
-                        >
-                            <i className="bi bi-database-add me-2"></i> Catalog (Data Entry)
-                        </button>
-                    </li>
+                    <>
+                        <li className="nav-item">
+                            <button 
+                                className={`nav-link fw-bold px-4 rounded-pill me-2 shadow-none ${adminTab === 'catalog' ? 'active bg-success shadow-sm text-white' : 'text-success opacity-75'}`} 
+                                onClick={() => setAdminTab('catalog')}
+                            >
+                                <i className="bi bi-database-add me-2"></i> Data Entry
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button 
+                                className={`nav-link fw-bold px-4 rounded-pill shadow-none ${adminTab === 'overview' ? 'active bg-danger shadow-sm text-white' : 'text-danger opacity-75'}`} 
+                                onClick={() => setAdminTab('overview')}
+                            >
+                                <i className="bi bi-trash3 me-2"></i> Data Overview & Delete
+                            </button>
+                        </li>
+                    </>
                 )}
             </ul>
 
-            {adminTab === 'access' ? (
+            {/* РЕНДИРАНЕ НА ИЗБРАНИЯ КОМПОНЕНТ */}
+            {adminTab === 'access' && (
                 <AccessControl 
                     allUsers={allUsers} pendingRoles={pendingRoles} pendingPlayers={pendingPlayers}
                     currentUserRoles={userRoles} canManageUsers={canManageUsers} loadData={loadData} 
                 />
-            ) : (
+            )}
+            
+            {adminTab === 'catalog' && (
                 <DataManagement leagues={leagues} teams={teams} loadData={loadData} />
+            )}
+
+            {adminTab === 'overview' && (
+                <DataOverview />
             )}
         </div>
     );
-}
+}   
