@@ -7,12 +7,10 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const [newTeam, setNewTeam] = useState({ name: '', city: '', stadium: '', leagueId: '' });
     const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', dateOfBirth: '', positionId: '', teamId: '' });
     const [newPosition, setNewPosition] = useState({ name: '', abbreviation: '', category: '' });
-    
-    // Стейт за Мач
     const [newMatch, setNewMatch] = useState({ leagueId: '', seasonId: '', round: 1, homeTeamId: '', awayTeamId: '', matchDate: '' });
     
-    // НОВО: Стейт за Сезон
-    const [newSeason, setNewSeason] = useState({ name: '', leagueId: '', startDate: '', endDate: '', isActive: true });
+    // Стейт за сезон, приемащ масив от лиги
+    const [newSeason, setNewSeason] = useState({ name: '', leagueIds: [], startDate: '', endDate: '', isActive: true });
 
     const [positions, setPositions] = useState([]);
     const [recentPlayers, setRecentPlayers] = useState([]);
@@ -23,29 +21,19 @@ export default function DataManagement({ leagues, teams, loadData }) {
 
     const loadLocalData = async () => {
         const token = localStorage.getItem('jwtToken');
-        fetch(`${API_URL}/Positions`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => res.json()).then(data => setPositions(data)).catch(err => console.log(err));
-        
-        fetch(`${API_URL}/Players`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => res.json()).then(data => setRecentPlayers(data)).catch(err => console.log(err));
-        
-        fetch(`${API_URL}/Seasons`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => res.json()).then(data => setSeasons(data)).catch(err => console.log(err));
+        fetch(`${API_URL}/Positions`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()).then(data => setPositions(data)).catch(err => console.log(err));
+        fetch(`${API_URL}/Players`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()).then(data => setRecentPlayers(data)).catch(err => console.log(err));
+        fetch(`${API_URL}/Seasons`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()).then(data => setSeasons(data)).catch(err => console.log(err));
     };
 
     const csvToJson = (csvStr, expectedHeaders) => {
         const lines = csvStr.split('\n').filter(line => line.trim().length > 0);
         if (lines.length < 2) return []; 
-        
         const delimiter = lines[0].includes(';') ? ';' : ',';
-
-        const dataLines = lines.slice(1);
-        return dataLines.map(line => {
+        return lines.slice(1).map(line => {
             const values = line.split(delimiter).map(v => v.trim());
             let obj = {};
-            expectedHeaders.forEach((header, index) => {
-                obj[header] = values[index];
-            });
+            expectedHeaders.forEach((header, index) => { obj[header] = values[index]; });
             return obj;
         });
     };
@@ -65,8 +53,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     payload = csvToJson(csvText, ['name', 'country']);
                     endpoint = `${API_URL}/Leagues/bulk`;
                 } else if (type === 'teams') {
-                    payload = csvToJson(csvText, ['leagueId', 'name', 'city', 'stadium'])
-                               .map(p => ({...p, leagueId: parseInt(p.leagueId)}));
+                    payload = csvToJson(csvText, ['leagueId', 'name', 'city', 'stadium']).map(p => ({...p, leagueId: parseInt(p.leagueId)}));
                     endpoint = `${API_URL}/Teams/bulk`;
                 } else if (type === 'positions') {
                     payload = csvToJson(csvText, ['name', 'abbreviation', 'category']);
@@ -117,13 +104,23 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const handleAddPosition = (e) => { e.preventDefault(); postData('Positions', newPosition, () => setNewPosition({ name: '', abbreviation: '', category: '' })); };
     const handleAddPlayer = (e) => { e.preventDefault(); postData('Players', { ...newPlayer, positionId: parseInt(newPlayer.positionId), teamId: newPlayer.teamId ? parseInt(newPlayer.teamId) : null }, () => setNewPlayer({ firstName: '', lastName: '', dateOfBirth: '', positionId: '', teamId: '' })); };
     
-    // НОВО: Добавяне на сезон
+    // МАГИЧЕСКО ДОБАВЯНЕ НА СЕЗОН
     const handleAddSeason = (e) => {
         e.preventDefault();
-        postData('Seasons', {
-            ...newSeason,
-            leagueId: parseInt(newSeason.leagueId)
-        }, () => setNewSeason({ name: '', leagueId: '', startDate: '', endDate: '', isActive: true }));
+        if (newSeason.leagueIds.length === 0) return alert("Please select at least one league.");
+        
+        postData('Seasons', newSeason, () => setNewSeason({ name: '', leagueIds: [], startDate: '', endDate: '', isActive: true }));
+    };
+
+    const handleLeagueToggle = (leagueId) => {
+        setNewSeason(prev => {
+            const isSelected = prev.leagueIds.includes(leagueId);
+            if (isSelected) {
+                return { ...prev, leagueIds: prev.leagueIds.filter(id => id !== leagueId) };
+            } else {
+                return { ...prev, leagueIds: [...prev.leagueIds, leagueId] };
+            }
+        });
     };
 
     const handleAddMatch = (e) => {
@@ -136,8 +133,8 @@ export default function DataManagement({ leagues, teams, loadData }) {
         }, () => setNewMatch({ leagueId: '', seasonId: '', round: 1, homeTeamId: '', awayTeamId: '', matchDate: '' }));
     };
 
-    const filteredTeams = teams.filter(t => t.leagueId === parseInt(newMatch.leagueId));
-    const filteredSeasons = seasons.filter(s => s.leagueId === parseInt(newMatch.leagueId));
+    const filteredTeamsForMatch = teams.filter(t => t.leagueId === parseInt(newMatch.leagueId));
+    const filteredSeasonsForMatch = seasons.filter(s => s.leagueId === parseInt(newMatch.leagueId));
 
     return (
         <div className="row g-4">
@@ -160,44 +157,6 @@ export default function DataManagement({ leagues, teams, loadData }) {
                                     <input type="file" accept=".csv" hidden onChange={(e) => handleImportCSV(e, 'leagues')} />
                                 </label>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            {/* НОВО: ДОБАВЯНЕ НА СЕЗОН */}
-            <div className="col-md-6 col-xl-3">
-                <div className="card shadow-sm border-0 rounded-4 h-100 d-flex flex-column" style={{ backgroundColor: '#1e293b' }}>
-                    <div className="card-header bg-secondary text-white fw-bold py-3">📅 Add Season</div>
-                    <div className="card-body">
-                        <form onSubmit={handleAddSeason}>
-                            <select className="form-select mb-2 bg-dark text-white border-secondary shadow-none" required value={newSeason.leagueId} onChange={e => setNewSeason({...newSeason, leagueId: e.target.value})}>
-                                <option value="">-- Select League --</option>
-                                {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                            </select>
-                            <input className="form-control mb-2 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Season Name (e.g. 2024/2025)" required 
-                                value={newSeason.name} onChange={e => setNewSeason({...newSeason, name: e.target.value})} />
-                            
-                            <div className="d-flex gap-2 mb-2">
-                                <div className="w-50">
-                                    <label className="text-light opacity-75 small">Start Date</label>
-                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" required 
-                                        value={newSeason.startDate} onChange={e => setNewSeason({...newSeason, startDate: e.target.value})} />
-                                </div>
-                                <div className="w-50">
-                                    <label className="text-light opacity-75 small">End Date</label>
-                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" required 
-                                        value={newSeason.endDate} onChange={e => setNewSeason({...newSeason, endDate: e.target.value})} />
-                                </div>
-                            </div>
-                            
-                            <div className="form-check form-switch mb-3">
-                                <input className="form-check-input" type="checkbox" role="switch" id="activeSeasonSwitch" 
-                                    checked={newSeason.isActive} onChange={e => setNewSeason({...newSeason, isActive: e.target.checked})} />
-                                <label className="form-check-label text-light opacity-75" htmlFor="activeSeasonSwitch">Is Current Season?</label>
-                            </div>
-
-                            <button type="submit" className="btn btn-secondary w-100 fw-bold shadow-sm">Save</button>
                         </form>
                     </div>
                 </div>
@@ -295,7 +254,64 @@ export default function DataManagement({ leagues, teams, loadData }) {
                 </div>
             </div>
 
-            {/* 5. ДОБАВЯНЕ НА МАЧ (FIXTURE) */}
+            {/* 5. ДОБАВЯНЕ НА СЕЗОН (С ОТМЕТКИ ЗА ЛИГИТЕ) */}
+            <div className="col-md-6 col-xl-3">
+                <div className="card shadow-sm border-0 rounded-4 h-100 d-flex flex-column" style={{ backgroundColor: '#1e293b' }}>
+                    <div className="card-header bg-secondary text-white fw-bold py-3">📅 Add Season & Standings</div>
+                    <div className="card-body">
+                        <form onSubmit={handleAddSeason}>
+                            
+                            <input className="form-control mb-2 bg-dark text-white border-secondary shadow-none" placeholder="Season Name (e.g. 2024/2025)" required 
+                                value={newSeason.name} onChange={e => setNewSeason({...newSeason, name: e.target.value})} />
+                            
+                            <div className="d-flex gap-2 mb-2">
+                                <div className="w-50">
+                                    <label className="text-light opacity-75 small">Start</label>
+                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" required 
+                                        value={newSeason.startDate} onChange={e => setNewSeason({...newSeason, startDate: e.target.value})} />
+                                </div>
+                                <div className="w-50">
+                                    <label className="text-light opacity-75 small">End</label>
+                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" required 
+                                        value={newSeason.endDate} onChange={e => setNewSeason({...newSeason, endDate: e.target.value})} />
+                                </div>
+                            </div>
+                            
+                            <div className="form-check form-switch mb-2">
+                                <input className="form-check-input" type="checkbox" role="switch" id="activeSeasonSwitch" 
+                                    checked={newSeason.isActive} onChange={e => setNewSeason({...newSeason, isActive: e.target.checked})} />
+                                <label className="form-check-label text-light opacity-75 small" htmlFor="activeSeasonSwitch">Is Current Season?</label>
+                            </div>
+
+                            {/* ИЗБОР НА ЛИГИ (Чекбоксове) */}
+                            <div className="mb-3 border border-secondary rounded p-2 custom-scrollbar" style={{ maxHeight: '110px', overflowY: 'auto' }}>
+                                <label className="text-info small fw-bold mb-1 d-block">Select Leagues for this season:</label>
+                                {leagues.length === 0 ? <div className="small text-muted">No leagues available.</div> : 
+                                    leagues.map(l => (
+                                        <div className="form-check" key={l.id}>
+                                            <input className="form-check-input" type="checkbox" 
+                                                id={`league_${l.id}`} 
+                                                checked={newSeason.leagueIds.includes(l.id)} 
+                                                onChange={() => handleLeagueToggle(l.id)} 
+                                            />
+                                            <label className="form-check-label text-white small" htmlFor={`league_${l.id}`}>
+                                                {l.name}
+                                            </label>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                            <div className="form-text text-warning small mb-3 lh-sm" style={{fontSize: '0.7rem'}}>
+                                All teams in the selected leagues will automatically be enrolled in the standings with 0 points.
+                            </div>
+
+                            <button type="submit" className="btn btn-secondary w-100 fw-bold shadow-sm">Create Season(s)</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {/* 6. ДОБАВЯНЕ НА МАЧ (FIXTURE) */}
             <div className="col-md-6 col-xl-3">
                 <div className="card shadow-sm border-0 rounded-4 h-100 d-flex flex-column" style={{ backgroundColor: '#1e293b' }}>
                     <div className="card-header bg-danger text-white fw-bold py-3">⚔️ Add Match Fixture</div>
@@ -309,7 +325,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
 
                             <select className="form-select form-select-sm mb-2 bg-dark text-white border-secondary shadow-none" required value={newMatch.seasonId} onChange={e => setNewMatch({...newMatch, seasonId: e.target.value})} disabled={!newMatch.leagueId}>
                                 <option value="">-- Select Season --</option>
-                                {filteredSeasons.map(s => <option key={s.id} value={s.id}>{s.name} {s.isActive ? '(Current)' : ''}</option>)}
+                                {filteredSeasonsForMatch.map(s => <option key={s.id} value={s.id}>{s.name} {s.isActive ? '(Current)' : ''}</option>)}
                             </select>
 
                             <input type="number" className="form-control form-control-sm mb-2 bg-dark text-white border-secondary shadow-none" placeholder="Round" required min="1"
@@ -317,12 +333,12 @@ export default function DataManagement({ leagues, teams, loadData }) {
 
                             <select className="form-select form-select-sm mb-2 bg-dark text-white border-secondary shadow-none" required value={newMatch.homeTeamId} onChange={e => setNewMatch({...newMatch, homeTeamId: e.target.value})} disabled={!newMatch.leagueId}>
                                 <option value="">-- Home Team --</option>
-                                {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                {filteredTeamsForMatch.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
 
                             <select className="form-select form-select-sm mb-2 bg-dark text-white border-secondary shadow-none" required value={newMatch.awayTeamId} onChange={e => setNewMatch({...newMatch, awayTeamId: e.target.value})} disabled={!newMatch.leagueId}>
                                 <option value="">-- Away Team --</option>
-                                {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                {filteredTeamsForMatch.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
 
                             <input type="datetime-local" className="form-control form-control-sm mb-3 bg-dark text-white border-secondary shadow-none" required 
@@ -341,7 +357,10 @@ export default function DataManagement({ leagues, teams, loadData }) {
             </div>
 
             <style dangerouslySetInnerHTML={{__html: `
-                .placeholder-gray::placeholder { color: #64748b !important; }
+                .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
             `}} />
         </div>
     );

@@ -19,7 +19,6 @@ export default function Layout() {
                 }).join(''));
 
                 const payload = JSON.parse(jsonPayload);
-                // Тъй като бекендът вече слага Username-а в ClaimTypes.Name, тук ще получим директно Username!
                 const nameClaim = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] 
                                || payload.name 
                                || payload.unique_name 
@@ -32,7 +31,6 @@ export default function Layout() {
         }
     }, []);
 
-    // НОВО: Потвърждение при изход
     const handleLogoutConfirm = () => {
         if (window.confirm("Are you sure you want to sign out?")) {
             localStorage.removeItem('jwtToken');
@@ -45,7 +43,21 @@ export default function Layout() {
     const isActive = (path) => location.pathname === path ? "active fw-bold border-bottom border-3 border-info pb-1 text-white" : "text-light opacity-75";
 
     return (
-        <div className="min-vh-100" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+        <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
+            {/* ГЛОБАЛНИ СТИЛОВЕ: Убиваме белия фон на body */}
+            <style dangerouslySetInnerHTML={{__html: `
+                body, html { background-color: #0f172a !important; margin: 0; padding: 0; }
+                .placeholder-gray::placeholder { color: #64748b !important; }
+                .hover-opacity-100:hover { opacity: 1 !important; }
+                .transition-all { transition: all 0.2s ease-in-out; }
+                .hover-bg-dark:hover { background-color: #1e293b !important; }
+                
+                .dropdown-menu::-webkit-scrollbar { width: 6px; }
+                .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+                .dropdown-menu::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+                .dropdown-menu::-webkit-scrollbar-thumb:hover { background: #64748b; }
+            `}} />
+
             <nav className="navbar navbar-expand-lg navbar-dark shadow-sm py-3 sticky-top" style={{ backgroundColor: '#1e293b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="container d-flex justify-content-between align-items-center">
                     
@@ -105,7 +117,6 @@ export default function Layout() {
                                 </div>
                             </div>
                             
-                            {/* ПОПРАВЕН БУТОН ЗА ИЗХОД: Винаги показва текста и иконката */}
                             <button 
                                 onClick={handleLogoutConfirm} 
                                 className="btn btn-danger rounded-pill px-3 fw-bold shadow-sm ms-2 d-flex align-items-center gap-2" 
@@ -120,21 +131,10 @@ export default function Layout() {
                 </div>
             </nav>
 
-            <main className="container mt-4 mb-5">
+            {/* flex-grow-1 гарантира, че main запълва екрана, ако е празен */}
+            <main className="container mt-4 mb-5 pb-5 flex-grow-1">
                 <Outlet /> 
             </main>
-
-            <style dangerouslySetInnerHTML={{__html: `
-                .placeholder-gray::placeholder { color: #64748b !important; }
-                .hover-opacity-100:hover { opacity: 1 !important; }
-                .transition-all { transition: all 0.2s ease-in-out; }
-                .hover-bg-dark:hover { background-color: #0f172a !important; }
-                
-                .dropdown-menu::-webkit-scrollbar { width: 6px; }
-                .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
-                .dropdown-menu::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-                .dropdown-menu::-webkit-scrollbar-thumb:hover { background: #64748b; }
-            `}} />
         </div>
     );
 }

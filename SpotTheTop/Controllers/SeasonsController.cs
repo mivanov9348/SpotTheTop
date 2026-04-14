@@ -6,9 +6,9 @@
     using SpotTheTop.Core.DTOs.Season;
     using SpotTheTop.Core.Models;
     using SpotTheTop.Data;
-    using System;
+    using System.Collections.Generic;
     using System.Linq;
-    using System.Threading.Tasks;   
+    using System.Threading.Tasks;
 
     [Route("api/[controller]")]
     [ApiController]
@@ -51,33 +51,50 @@
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> AddSeason([FromBody] SeasonCreateDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest("Season name is required.");
+            if (!dto.LeagueIds.Any()) return BadRequest("Изберете поне една лига.");
 
-            // Ако новият сезон е активен, деактивираме всички останали за тази лига
-            if (dto.IsActive)
+            foreach (var leagueId in dto.LeagueIds)
             {
-                var oldActiveSeasons = await _context.Seasons
-                    .Where(s => s.LeagueId == dto.LeagueId && s.IsActive)
-                    .ToListAsync();
-                foreach (var old in oldActiveSeasons)
+                // 1. Деактивираме старите сезони за тази лига
+                if (dto.IsActive)
                 {
-                    old.IsActive = false;
+                    var activeSeasons = await _context.Seasons.Where(s => s.LeagueId == leagueId && s.IsActive).ToListAsync();
+                    activeSeasons.ForEach(s => s.IsActive = false);
                 }
+
+                // 2. Създаваме новия сезон
+                var newSeason = new Season
+                {
+                    Name = dto.Name,
+                    LeagueId = leagueId,
+                    StartDate = dto.StartDate,
+                    EndDate = dto.EndDate,
+                    IsActive = dto.IsActive
+                };
+                _context.Seasons.Add(newSeason);
+                await _context.SaveChangesAsync();
+
+                // 3. Автоматично намираме всички отбори в тази лига и ги записваме в класирането (0 точки)
+                var teamsInLeague = await _context.Teams.Where(t => t.LeagueId == leagueId && t.IsApproved).ToListAsync();
+                var initialStandings = teamsInLeague.Select(t => new TeamSeasonStanding
+                {
+                    SeasonId = newSeason.Id,
+                    LeagueId = leagueId,
+                    TeamId = t.Id,
+                    Points = 0,
+                    Wins = 0,
+                    Draws = 0,
+                    Losses = 0,
+                    GoalsFor = 0,
+                    GoalsAgainst = 0,
+                    MatchesPlayed = 0
+                }).ToList();
+
+                _context.TeamSeasonStandings.AddRange(initialStandings);
             }
 
-            var newSeason = new Season
-            {
-                Name = dto.Name,
-                LeagueId = dto.LeagueId,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                IsActive = dto.IsActive
-            };
-
-            _context.Seasons.Add(newSeason);
             await _context.SaveChangesAsync();
-
-            return Ok("Season created successfully!");
+            return Ok("Сезоните и класиранията бяха създадени автоматично!");
         }
 
         [HttpDelete("{id}")]

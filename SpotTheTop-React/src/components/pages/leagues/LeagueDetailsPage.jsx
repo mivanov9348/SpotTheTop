@@ -18,18 +18,13 @@ export default function LeagueDetailsPage() {
     const [activeTab, setActiveTab] = useState('standings'); 
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     
-    // НОВО: Слагаме правата в стейт, за да сме сигурни, че се обновяват
     const [canEditMatches, setCanEditMatches] = useState(false);
 
     useEffect(() => {
-        // Проверка на ролите веднага при зареждане
         try {
             const rolesStr = localStorage.getItem('userRoles');
             const roles = rolesStr ? JSON.parse(rolesStr) : [];
-            // Ако по някаква причина roles не е масив (например е string), го правим на масив
             const rolesArray = Array.isArray(roles) ? roles : [roles];
-            
-            console.log("Моите роли са:", rolesArray); // Натисни F12 в браузъра и виж какво пише тук!
             
             const hasAccess = rolesArray.some(r => ['SuperAdmin', 'Admin', 'Moderator'].includes(r));
             setCanEditMatches(hasAccess);
@@ -128,7 +123,7 @@ export default function LeagueDetailsPage() {
                         <table className="table table-dark table-hover align-middle mb-0 bg-transparent text-center">
                             <thead className="small fw-bold text-light opacity-75 border-secondary">
                                 <tr>
-                                    <th className="px-4 py-3 text-start bg-transparent" style={{ width: '5%' }}>#</th>
+                                    <th className="px-4 py-3 text-center bg-transparent" style={{ width: '5%' }}>#</th>
                                     <th className="py-3 text-start bg-transparent" style={{ width: '35%' }}>Club</th>
                                     <th className="py-3 bg-transparent" title="Played">MP</th>
                                     <th className="py-3 bg-transparent" title="Wins">W</th>
@@ -145,7 +140,17 @@ export default function LeagueDetailsPage() {
                                 ) : (
                                     standingsData.standings.map((row, index) => (
                                         <tr key={row.teamId}>
-                                            <td className="px-4 text-start fw-bold text-muted bg-transparent border-secondary">{index + 1}</td>
+                                            {/* НОВА КРАСИВА НОМЕРАЦИЯ */}
+                                            <td className="px-4 text-center fw-bold bg-transparent border-secondary">
+                                                <span className={`badge rounded-pill ${
+                                                    index === 0 ? 'bg-warning text-dark' : 
+                                                    index === 1 ? 'bg-light text-dark' : 
+                                                    index === 2 ? 'bg-danger text-white' : 
+                                                    'bg-dark border border-secondary text-light'
+                                                }`}>
+                                                    {index + 1}
+                                                </span>
+                                            </td>
                                             <td className="text-start bg-transparent border-secondary">
                                                 <Link to={`/teams/${row.teamId}`} className="fw-bold text-white text-decoration-none d-flex align-items-center">
                                                     <div className="bg-primary rounded-circle d-flex justify-content-center align-items-center text-white me-2 shadow-sm" style={{ width: '25px', height: '25px', fontSize: '10px' }}>
@@ -170,7 +175,6 @@ export default function LeagueDetailsPage() {
                 </div>
             )}
 
-            {/* ИЗВИКВАМЕ ИЗНЕСЕНИЯ КОМПОНЕНТ ЗА МАЧОВЕТЕ */}
             {activeTab === 'matches' && (
                 <LeagueMatchesTab leagueId={id} canEditMatches={canEditMatches} />
             )}

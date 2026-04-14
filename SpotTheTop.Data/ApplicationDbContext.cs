@@ -41,16 +41,22 @@
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<TeamSeasonStanding>()
-                .HasOne(ts => ts.Season)
-                .WithMany(s => s.Standings)
-                .HasForeignKey(ts => ts.SeasonId)
-                .OnDelete(DeleteBehavior.Cascade); 
+    .HasOne(ts => ts.Season)
+    .WithMany(s => s.Standings)
+    .HasForeignKey(ts => ts.SeasonId)
+    .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<TeamSeasonStanding>()
                 .HasOne(ts => ts.Team)
                 .WithMany(t => t.SeasonStandings)
                 .HasForeignKey(ts => ts.TeamId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TeamSeasonStanding>()
+                .HasOne(ts => ts.League)
+                .WithMany()
+                .HasForeignKey(ts => ts.LeagueId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Match>()
                 .HasOne(m => m.Season)
@@ -104,7 +110,7 @@
         .HasOne(c => c.Post)
         .WithMany(p => p.Comments)
         .HasForeignKey(c => c.PostId)
-        .OnDelete(DeleteBehavior.Cascade); 
+        .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<Like>()
                 .HasOne(l => l.Post)
