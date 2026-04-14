@@ -12,8 +12,8 @@ using SpotTheTop.Data;
 namespace SpotTheTop.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260412142256_AddMatch")]
-    partial class AddMatch
+    [Migration("20260414121934_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -363,8 +363,38 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<int>("Assists")
                         .HasColumnType("int");
 
+                    b.Property<int?>("Blocks")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ChancesCreated")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Clearances")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Crosses")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DribblesCompleted")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FoulsCommitted")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FoulsDrawn")
+                        .HasColumnType("int");
+
                     b.Property<int>("Goals")
                         .HasColumnType("int");
+
+                    b.Property<int?>("GoalsConceded")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Interceptions")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCleanSheet")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRedCard")
                         .HasColumnType("bit");
@@ -378,11 +408,29 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<int>("MinutesPlayed")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PassAccuracyPercent")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PassesCompleted")
+                        .HasColumnType("int");
+
                     b.Property<int>("PlayerId")
                         .HasColumnType("int");
 
                     b.Property<string>("ProofUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Saves")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Shots")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ShotsOnTarget")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TacklesWon")
+                        .HasColumnType("int");
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int");
@@ -622,6 +670,9 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<int>("GoalsFor")
                         .HasColumnType("int");
 
+                    b.Property<int>("LeagueId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Losses")
                         .HasColumnType("int");
 
@@ -641,6 +692,8 @@ namespace SpotTheTop.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LeagueId");
 
                     b.HasIndex("SeasonId");
 
@@ -826,6 +879,12 @@ namespace SpotTheTop.Data.Migrations
 
             modelBuilder.Entity("SpotTheTop.Core.Models.TeamSeasonStanding", b =>
                 {
+                    b.HasOne("SpotTheTop.Core.Models.League", "League")
+                        .WithMany()
+                        .HasForeignKey("LeagueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SpotTheTop.Core.Models.Season", "Season")
                         .WithMany("Standings")
                         .HasForeignKey("SeasonId")
@@ -837,6 +896,8 @@ namespace SpotTheTop.Data.Migrations
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("League");
 
                     b.Navigation("Season");
 

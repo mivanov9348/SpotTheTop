@@ -360,8 +360,38 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<int>("Assists")
                         .HasColumnType("int");
 
+                    b.Property<int?>("Blocks")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ChancesCreated")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Clearances")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Crosses")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DribblesCompleted")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FoulsCommitted")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FoulsDrawn")
+                        .HasColumnType("int");
+
                     b.Property<int>("Goals")
                         .HasColumnType("int");
+
+                    b.Property<int?>("GoalsConceded")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Interceptions")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCleanSheet")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRedCard")
                         .HasColumnType("bit");
@@ -375,11 +405,29 @@ namespace SpotTheTop.Data.Migrations
                     b.Property<int>("MinutesPlayed")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PassAccuracyPercent")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PassesCompleted")
+                        .HasColumnType("int");
+
                     b.Property<int>("PlayerId")
                         .HasColumnType("int");
 
                     b.Property<string>("ProofUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Saves")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Shots")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ShotsOnTarget")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TacklesWon")
+                        .HasColumnType("int");
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int");

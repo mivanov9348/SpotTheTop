@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpotTheTop.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialClean : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -77,6 +77,22 @@ namespace SpotTheTop.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Positions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Posts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Content = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AuthorUserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AuthorRole = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Posts", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -233,6 +249,48 @@ namespace SpotTheTop.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Comments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PostId = table.Column<int>(type: "int", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AuthorUserId = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Comments_Posts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Posts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PostId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Likes_Posts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Posts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Matches",
                 columns: table => new
                 {
@@ -240,6 +298,7 @@ namespace SpotTheTop.Data.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     LeagueId = table.Column<int>(type: "int", nullable: false),
                     SeasonId = table.Column<int>(type: "int", nullable: false),
+                    Round = table.Column<int>(type: "int", nullable: false),
                     HomeTeamId = table.Column<int>(type: "int", nullable: false),
                     AwayTeamId = table.Column<int>(type: "int", nullable: false),
                     MatchDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -290,6 +349,10 @@ namespace SpotTheTop.Data.Migrations
                     PreferredFoot = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Nationality = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ProfileImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    JerseyNumber = table.Column<int>(type: "int", nullable: true),
+                    MarketValueEuro = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    ContractEndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AgentName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     PositionId = table.Column<int>(type: "int", nullable: false),
                     TeamId = table.Column<int>(type: "int", nullable: true),
                     IsApproved = table.Column<bool>(type: "bit", nullable: false),
@@ -314,6 +377,46 @@ namespace SpotTheTop.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TeamSeasonStandings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SeasonId = table.Column<int>(type: "int", nullable: false),
+                    TeamId = table.Column<int>(type: "int", nullable: false),
+                    LeagueId = table.Column<int>(type: "int", nullable: false),
+                    MatchesPlayed = table.Column<int>(type: "int", nullable: false),
+                    Wins = table.Column<int>(type: "int", nullable: false),
+                    Draws = table.Column<int>(type: "int", nullable: false),
+                    Losses = table.Column<int>(type: "int", nullable: false),
+                    GoalsFor = table.Column<int>(type: "int", nullable: false),
+                    GoalsAgainst = table.Column<int>(type: "int", nullable: false),
+                    Points = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamSeasonStandings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TeamSeasonStandings_Leagues_LeagueId",
+                        column: x => x.LeagueId,
+                        principalTable: "Leagues",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TeamSeasonStandings_Seasons_SeasonId",
+                        column: x => x.SeasonId,
+                        principalTable: "Seasons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TeamSeasonStandings_Teams_TeamId",
+                        column: x => x.TeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MatchAppearances",
                 columns: table => new
                 {
@@ -327,6 +430,22 @@ namespace SpotTheTop.Data.Migrations
                     Assists = table.Column<int>(type: "int", nullable: false),
                     YellowCards = table.Column<int>(type: "int", nullable: false),
                     IsRedCard = table.Column<bool>(type: "bit", nullable: false),
+                    Shots = table.Column<int>(type: "int", nullable: true),
+                    ShotsOnTarget = table.Column<int>(type: "int", nullable: true),
+                    ChancesCreated = table.Column<int>(type: "int", nullable: true),
+                    DribblesCompleted = table.Column<int>(type: "int", nullable: true),
+                    PassesCompleted = table.Column<int>(type: "int", nullable: true),
+                    PassAccuracyPercent = table.Column<int>(type: "int", nullable: true),
+                    Crosses = table.Column<int>(type: "int", nullable: true),
+                    TacklesWon = table.Column<int>(type: "int", nullable: true),
+                    Interceptions = table.Column<int>(type: "int", nullable: true),
+                    Clearances = table.Column<int>(type: "int", nullable: true),
+                    Blocks = table.Column<int>(type: "int", nullable: true),
+                    IsCleanSheet = table.Column<bool>(type: "bit", nullable: false),
+                    Saves = table.Column<int>(type: "int", nullable: true),
+                    GoalsConceded = table.Column<int>(type: "int", nullable: true),
+                    FoulsCommitted = table.Column<int>(type: "int", nullable: true),
+                    FoulsDrawn = table.Column<int>(type: "int", nullable: true),
                     AddedByUserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsVerified = table.Column<bool>(type: "bit", nullable: false),
                     ProofUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -394,6 +513,16 @@ namespace SpotTheTop.Data.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Comments_PostId",
+                table: "Comments",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Likes_PostId",
+                table: "Likes",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MatchAppearances_MatchId",
                 table: "MatchAppearances",
                 column: "MatchId");
@@ -447,6 +576,21 @@ namespace SpotTheTop.Data.Migrations
                 name: "IX_Teams_LeagueId",
                 table: "Teams",
                 column: "LeagueId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamSeasonStandings_LeagueId",
+                table: "TeamSeasonStandings",
+                column: "LeagueId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamSeasonStandings_SeasonId",
+                table: "TeamSeasonStandings",
+                column: "SeasonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamSeasonStandings_TeamId",
+                table: "TeamSeasonStandings",
+                column: "TeamId");
         }
 
         /// <inheritdoc />
@@ -468,13 +612,25 @@ namespace SpotTheTop.Data.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Likes");
+
+            migrationBuilder.DropTable(
                 name: "MatchAppearances");
+
+            migrationBuilder.DropTable(
+                name: "TeamSeasonStandings");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Posts");
 
             migrationBuilder.DropTable(
                 name: "Matches");

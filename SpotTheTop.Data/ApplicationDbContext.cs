@@ -28,6 +28,11 @@
         {
             base.OnModelCreating(builder);
 
+            // Фикс за грешката с MarketValueEuro, която ти излизаше в конзолата
+            builder.Entity<Player>()
+                .Property(p => p.MarketValueEuro)
+                .HasColumnType("decimal(18,2)");
+
             builder.Entity<Team>()
                 .HasOne(t => t.League)
                 .WithMany(l => l.Teams)
@@ -41,10 +46,10 @@
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<TeamSeasonStanding>()
-    .HasOne(ts => ts.Season)
-    .WithMany(s => s.Standings)
-    .HasForeignKey(ts => ts.SeasonId)
-    .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(ts => ts.Season)
+                .WithMany(s => s.Standings)
+                .HasForeignKey(ts => ts.SeasonId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<TeamSeasonStanding>()
                 .HasOne(ts => ts.Team)
@@ -107,10 +112,10 @@
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Comment>()
-        .HasOne(c => c.Post)
-        .WithMany(p => p.Comments)
-        .HasForeignKey(c => c.PostId)
-        .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(c => c.Post)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<Like>()
                 .HasOne(l => l.Post)

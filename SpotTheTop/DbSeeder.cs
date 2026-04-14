@@ -23,7 +23,7 @@
                 }
             }
 
-            var adminEmail = "admin@spotthetop.com";
+            var adminEmail = "admin@abv.bg";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
             if (adminUser == null)

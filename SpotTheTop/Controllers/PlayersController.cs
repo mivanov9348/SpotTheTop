@@ -135,6 +135,7 @@
                 .Include(p => p.Position)
                 .Include(p => p.Team)
                     .ThenInclude(t => t.League)
+                .Include(p => p.Appearances) // НОВО: Трябват ни участията, за да смятаме статистиката
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (player == null) return NotFound("Player not found.");
@@ -148,6 +149,8 @@
                 }
             }
 
+            var apps = player.Appearances.ToList();
+
             var dto = new PlayerDetailsDto
             {
                 Id = player.Id,
@@ -158,7 +161,31 @@
                 PositionName = player.Position.Name,
                 PositionCategory = player.Position.Category,
                 TeamName = player.Team?.Name ?? "Free Agent",
-                LeagueName = player.Team?.League?.Name
+                LeagueName = player.Team?.League?.Name,
+                HeightCm = player.HeightCm,
+                WeightKg = player.WeightKg,
+                PreferredFoot = player.PreferredFoot,
+                Nationality = player.Nationality,
+                MarketValueEuro = player.MarketValueEuro,
+
+                TotalMatchesPlayed = apps.Count,
+                TotalMinutesPlayed = apps.Sum(a => a.MinutesPlayed),
+                TotalGoals = apps.Sum(a => a.Goals),
+                TotalAssists = apps.Sum(a => a.Assists),
+                TotalYellowCards = apps.Sum(a => a.YellowCards),
+                TotalRedCards = apps.Count(a => a.IsRedCard),
+
+                TotalShots = apps.Any(a => a.Shots != null) ? apps.Sum(a => a.Shots ?? 0) : null,
+                TotalShotsOnTarget = apps.Any(a => a.ShotsOnTarget != null) ? apps.Sum(a => a.ShotsOnTarget ?? 0) : null,
+                TotalChancesCreated = apps.Any(a => a.ChancesCreated != null) ? apps.Sum(a => a.ChancesCreated ?? 0) : null,
+                TotalDribblesCompleted = apps.Any(a => a.DribblesCompleted != null) ? apps.Sum(a => a.DribblesCompleted ?? 0) : null,
+                TotalPassesCompleted = apps.Any(a => a.PassesCompleted != null) ? apps.Sum(a => a.PassesCompleted ?? 0) : null,
+                AveragePassAccuracy = apps.Any(a => a.PassAccuracyPercent != null) ? (int)apps.Where(a => a.PassAccuracyPercent.HasValue).Average(a => a.PassAccuracyPercent.Value) : null,
+                TotalTacklesWon = apps.Any(a => a.TacklesWon != null) ? apps.Sum(a => a.TacklesWon ?? 0) : null,
+                TotalInterceptions = apps.Any(a => a.Interceptions != null) ? apps.Sum(a => a.Interceptions ?? 0) : null,
+                TotalClearances = apps.Any(a => a.Clearances != null) ? apps.Sum(a => a.Clearances ?? 0) : null,
+                TotalCleanSheets = apps.Any(a => a.IsCleanSheet) ? apps.Count(a => a.IsCleanSheet) : null,
+                TotalSaves = apps.Any(a => a.Saves != null) ? apps.Sum(a => a.Saves ?? 0) : null
             };
 
             return Ok(dto);

@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using SpotTheTop.Api;
 using SpotTheTop.Data;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +61,11 @@ builder.Services.AddAuthentication(options =>
 });
 
 // --- Controllers ---
-builder.Services.AddControllers();
+// --- Controllers ---
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+}); 
 builder.Services.AddEndpointsApiExplorer();
 
 // --- Swagger ---
