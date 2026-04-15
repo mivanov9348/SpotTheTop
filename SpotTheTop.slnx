@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="SpotTheTop.Core/SpotTheTop.Core.csproj" />
   <Project Path="SpotTheTop.Data/SpotTheTop.Data.csproj" />
+  <Project Path="SpotTheTop.Services/SpotTheTop.Services.csproj" Id="7c36aeec-f623-49df-b88e-d5cdfa8f5e7b" />
   <Project Path="SpotTheTop/SpotTheTop.Api.csproj" />
 </Solution>

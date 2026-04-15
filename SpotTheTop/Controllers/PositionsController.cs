@@ -3,76 +3,51 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
-    using SpotTheTop.Core.DTOs.Players;
-    using SpotTheTop.Core.Models;
-    using SpotTheTop.Data;
+    using SpotTheTop.Services;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class PositionsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IPositionService _positionService;
 
-        public PositionsController(ApplicationDbContext context)
+        public PositionsController(IPositionService positionService)
         {
-            _context = context;
+            _positionService = positionService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetPositions()
         {
-            var positions = await _context.Positions.ToListAsync();
-            return Ok(positions);
+            return Ok(await _positionService.GetPositionsAsync());
         }
 
         [HttpPost]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> AddPosition([FromBody] PositionCreateDto dto)
+        public async Task<IActionResult> AddPosition([FromBody] dynamic dto) // Замести с PositionCreateDto
         {
-            var pos = new Position
-            {
-                Name = dto.Name,
-                Abbreviation = dto.Abbreviation,
-                Category = dto.Category
-            };
-
-            _context.Positions.Add(pos);
-            await _context.SaveChangesAsync();
-
-            return Ok($"Position '{pos.Name}' added successfully!");
+            return Ok(await _positionService.AddPositionAsync(dto));
         }
 
         [HttpPost("bulk")]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> ImportPositions([FromBody] List<PositionCreateDto> dtos)
+        public async Task<IActionResult> ImportPositions([FromBody] List<dynamic> dtos) // Замести с PositionCreateDto
         {
-            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
-
-            var positions = dtos.Select(d => new SpotTheTop.Core.Models.Position
-            {
-                Name = d.Name,
-                Abbreviation = d.Abbreviation,
-                Category = d.Category
-            }).ToList();
-
-            await _context.Positions.AddRangeAsync(positions);
-            await _context.SaveChangesAsync();
-
-            return Ok($"{positions.Count} positions imported successfully!");
+            if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
+            return Ok(await _positionService.ImportPositionsBulkAsync(dtos));
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> DeletePosition(int id)
         {
-            var position = await _context.Positions.FindAsync(id);
-            if (position == null) return NotFound("Position not found.");
-
             try
             {
-                _context.Positions.Remove(position);
-                await _context.SaveChangesAsync();
+                var success = await _positionService.DeletePositionAsync(id);
+                if (!success) return NotFound("Position not found.");
                 return Ok("Position deleted successfully!");
             }
             catch (DbUpdateException)

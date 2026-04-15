@@ -5,11 +5,18 @@ const API_URL = "https://localhost:44306/api";
 export default function DataManagement({ leagues, teams, loadData }) {
     const [newLeague, setNewLeague] = useState({ name: '', country: '' });
     const [newTeam, setNewTeam] = useState({ name: '', city: '', stadium: '', leagueId: '' });
-    const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', dateOfBirth: '', positionId: '', teamId: '' });
+    
+    // НОВО: Пълният стейт за играч
+    const initialPlayerState = { 
+        firstName: '', lastName: '', dateOfBirth: '', nationality: '', 
+        heightCm: '', weightKg: '', preferredFoot: '', profileImageUrl: '', 
+        jerseyNumber: '', marketValueEuro: '', contractEndDate: '', agentName: '', 
+        positionId: '', teamId: '' 
+    };
+    const [newPlayer, setNewPlayer] = useState(initialPlayerState);
+    
     const [newPosition, setNewPosition] = useState({ name: '', abbreviation: '', category: '' });
     const [newMatch, setNewMatch] = useState({ leagueId: '', seasonId: '', round: 1, homeTeamId: '', awayTeamId: '', matchDate: '' });
-    
-    // Стейт за сезон, приемащ масив от лиги
     const [newSeason, setNewSeason] = useState({ name: '', leagueIds: [], startDate: '', endDate: '', isActive: true });
 
     const [positions, setPositions] = useState([]);
@@ -59,8 +66,18 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     payload = csvToJson(csvText, ['name', 'abbreviation', 'category']);
                     endpoint = `${API_URL}/Positions/bulk`;
                 } else if (type === 'players') {
-                    payload = csvToJson(csvText, ['firstName', 'lastName', 'dateOfBirth', 'positionId', 'teamId'])
-                               .map(p => ({...p, positionId: parseInt(p.positionId), teamId: p.teamId ? parseInt(p.teamId) : null }));
+                    // Обновен масив за CSV (ако искат да качват масово)
+                    payload = csvToJson(csvText, ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'positionId', 'teamId', 'heightCm', 'weightKg', 'preferredFoot', 'jerseyNumber', 'marketValueEuro', 'contractEndDate', 'agentName'])
+                               .map(p => ({
+                                   ...p, 
+                                   positionId: parseInt(p.positionId), 
+                                   teamId: p.teamId ? parseInt(p.teamId) : null,
+                                   heightCm: p.heightCm ? parseInt(p.heightCm) : null,
+                                   weightKg: p.weightKg ? parseInt(p.weightKg) : null,
+                                   jerseyNumber: p.jerseyNumber ? parseInt(p.jerseyNumber) : null,
+                                   marketValueEuro: p.marketValueEuro ? parseFloat(p.marketValueEuro) : null,
+                                   contractEndDate: p.contractEndDate || null,
+                               }));
                     endpoint = `${API_URL}/Players/bulk`;
                 } else if (type === 'matches') {
                     payload = csvToJson(csvText, ['leagueId', 'seasonId', 'round', 'homeTeamId', 'awayTeamId', 'matchDate'])
@@ -102,24 +119,37 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const handleAddLeague = (e) => { e.preventDefault(); postData('Leagues', newLeague, () => setNewLeague({ name: '', country: '' })); };
     const handleAddTeam = (e) => { e.preventDefault(); postData('Teams', { ...newTeam, leagueId: parseInt(newTeam.leagueId) }, () => setNewTeam({ name: '', city: '', stadium: '', leagueId: '' })); };
     const handleAddPosition = (e) => { e.preventDefault(); postData('Positions', newPosition, () => setNewPosition({ name: '', abbreviation: '', category: '' })); };
-    const handleAddPlayer = (e) => { e.preventDefault(); postData('Players', { ...newPlayer, positionId: parseInt(newPlayer.positionId), teamId: newPlayer.teamId ? parseInt(newPlayer.teamId) : null }, () => setNewPlayer({ firstName: '', lastName: '', dateOfBirth: '', positionId: '', teamId: '' })); };
     
-    // МАГИЧЕСКО ДОБАВЯНЕ НА СЕЗОН
+    // НОВО: Изпращане на данните за играч с правилните типове (числа, null)
+    const handleAddPlayer = (e) => { 
+        e.preventDefault(); 
+        const payload = {
+            ...newPlayer,
+            positionId: parseInt(newPlayer.positionId),
+            teamId: newPlayer.teamId ? parseInt(newPlayer.teamId) : null,
+            heightCm: newPlayer.heightCm ? parseInt(newPlayer.heightCm) : null,
+            weightKg: newPlayer.weightKg ? parseInt(newPlayer.weightKg) : null,
+            jerseyNumber: newPlayer.jerseyNumber ? parseInt(newPlayer.jerseyNumber) : null,
+            marketValueEuro: newPlayer.marketValueEuro ? parseFloat(newPlayer.marketValueEuro) : null,
+            contractEndDate: newPlayer.contractEndDate || null,
+            preferredFoot: newPlayer.preferredFoot || null,
+            agentName: newPlayer.agentName || null,
+            profileImageUrl: newPlayer.profileImageUrl || null
+        };
+        postData('Players', payload, () => setNewPlayer(initialPlayerState)); 
+    };
+    
     const handleAddSeason = (e) => {
         e.preventDefault();
         if (newSeason.leagueIds.length === 0) return alert("Please select at least one league.");
-        
         postData('Seasons', newSeason, () => setNewSeason({ name: '', leagueIds: [], startDate: '', endDate: '', isActive: true }));
     };
 
     const handleLeagueToggle = (leagueId) => {
         setNewSeason(prev => {
             const isSelected = prev.leagueIds.includes(leagueId);
-            if (isSelected) {
-                return { ...prev, leagueIds: prev.leagueIds.filter(id => id !== leagueId) };
-            } else {
-                return { ...prev, leagueIds: [...prev.leagueIds, leagueId] };
-            }
+            if (isSelected) return { ...prev, leagueIds: prev.leagueIds.filter(id => id !== leagueId) };
+            else return { ...prev, leagueIds: [...prev.leagueIds, leagueId] };
         });
     };
 
@@ -145,9 +175,9 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     <div className="card-header bg-primary text-white fw-bold py-3">➕ Add League</div>
                     <div className="card-body">
                         <form onSubmit={handleAddLeague}>
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="League Name" required 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="League Name" required 
                                 value={newLeague.name} onChange={e => setNewLeague({...newLeague, name: e.target.value})} />
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Country" required 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="Country" required 
                                 value={newLeague.country} onChange={e => setNewLeague({...newLeague, country: e.target.value})} />
                             
                             <div className="d-flex gap-2 mb-3">
@@ -172,11 +202,11 @@ export default function DataManagement({ leagues, teams, loadData }) {
                                 <option value="">-- Select League --</option>
                                 {leagues.map(l => <option key={l.id} value={l.id}>[{l.id}] {l.name}</option>)}
                             </select>
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Team Name" required 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="Team Name" required 
                                 value={newTeam.name} onChange={e => setNewTeam({...newTeam, name: e.target.value})} />
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="City" 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="City" 
                                 value={newTeam.city} onChange={e => setNewTeam({...newTeam, city: e.target.value})} />
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Stadium" 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="Stadium" 
                                 value={newTeam.stadium} onChange={e => setNewTeam({...newTeam, stadium: e.target.value})} />
                             
                             <div className="d-flex gap-2 mb-3">
@@ -197,9 +227,9 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     <div className="card-header bg-info text-dark fw-bold py-3">➕ Add Position</div>
                     <div className="card-body">
                         <form onSubmit={handleAddPosition}>
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Position Name" required 
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="Position Name" required 
                                 value={newPosition.name} onChange={e => setNewPosition({...newPosition, name: e.target.value})} />
-                            <input className="form-control mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Abbreviation (e.g. LW)" required maxLength="4"
+                            <input className="form-control mb-3 bg-dark text-white border-secondary shadow-none" placeholder="Abbreviation (e.g. LW)" required maxLength="4"
                                 value={newPosition.abbreviation} onChange={e => setNewPosition({...newPosition, abbreviation: e.target.value})} />
                             <select className="form-select mb-3 bg-dark text-white border-secondary shadow-none" required value={newPosition.category} onChange={e => setNewPosition({...newPosition, category: e.target.value})}>
                                 <option value="">-- Category --</option>
@@ -218,31 +248,92 @@ export default function DataManagement({ leagues, teams, loadData }) {
                 </div>
             </div>
 
-            {/* 4. ДОБАВЯНЕ НА ИГРАЧ */}
+            {/* 4. ДОБАВЯНЕ НА ИГРАЧ (РАЗШИРЕНА ФОРМА) */}
             <div className="col-md-6 col-xl-3">
                 <div className="card shadow-sm border-0 rounded-4 h-100 d-flex flex-column" style={{ backgroundColor: '#1e293b' }}>
                     <div className="card-header bg-warning text-dark fw-bold py-3">➕ Add Player</div>
-                    <div className="card-body">
+                    <div className="card-body custom-scrollbar" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         <form onSubmit={handleAddPlayer}>
-                            <div className="d-flex gap-2 mb-2">
-                                <input className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="First Name" required 
-                                    value={newPlayer.firstName} onChange={e => setNewPlayer({...newPlayer, firstName: e.target.value})} />
-                                <input className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Last Name" required 
-                                    value={newPlayer.lastName} onChange={e => setNewPlayer({...newPlayer, lastName: e.target.value})} />
+                            
+                            {/* Основни Данни */}
+                            <div className="row g-2 mb-2">
+                                <div className="col-6">
+                                    <input className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="First Name" required 
+                                        value={newPlayer.firstName} onChange={e => setNewPlayer({...newPlayer, firstName: e.target.value})} />
+                                </div>
+                                <div className="col-6">
+                                    <input className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Last Name" required 
+                                        value={newPlayer.lastName} onChange={e => setNewPlayer({...newPlayer, lastName: e.target.value})} />
+                                </div>
                             </div>
-                            <input type="date" className="form-control form-control-sm mb-2 bg-dark text-white border-secondary shadow-none" required 
-                                value={newPlayer.dateOfBirth} onChange={e => setNewPlayer({...newPlayer, dateOfBirth: e.target.value})} />
                             
-                            <select className="form-select form-select-sm mb-2 bg-dark text-white border-warning shadow-none" required value={newPlayer.positionId} onChange={e => setNewPlayer({...newPlayer, positionId: e.target.value})}>
-                                <option value="">-- Position --</option>
-                                {positions.map(p => <option key={p.id} value={p.id}>[{p.id}] {p.name}</option>)}
-                            </select>
-                            <select className="form-select form-select-sm mb-3 bg-dark text-white border-secondary shadow-none" value={newPlayer.teamId} onChange={e => setNewPlayer({...newPlayer, teamId: e.target.value})}>
-                                <option value="">Free Agent</option>
-                                {teams.map(t => <option key={t.id} value={t.id}>[{t.id}] {t.name}</option>)}
-                            </select>
-                            
-                            <div className="d-flex gap-2 mb-3">
+                            <div className="row g-2 mb-2">
+                                <div className="col-6">
+                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" required title="Date of Birth"
+                                        value={newPlayer.dateOfBirth} onChange={e => setNewPlayer({...newPlayer, dateOfBirth: e.target.value})} />
+                                </div>
+                                <div className="col-6">
+                                    <input className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Nationality" required 
+                                        value={newPlayer.nationality} onChange={e => setNewPlayer({...newPlayer, nationality: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="row g-2 mb-3">
+                                <div className="col-6">
+                                    <select className="form-select form-select-sm bg-dark text-white border-warning shadow-none" required value={newPlayer.positionId} onChange={e => setNewPlayer({...newPlayer, positionId: e.target.value})}>
+                                        <option value="">-- Position --</option>
+                                        {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-6">
+                                    <select className="form-select form-select-sm bg-dark text-white border-secondary shadow-none" value={newPlayer.teamId} onChange={e => setNewPlayer({...newPlayer, teamId: e.target.value})}>
+                                        <option value="">Free Agent</option>
+                                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Физически Данни */}
+                            <div className="row g-2 mb-2 border-top border-secondary pt-2">
+                                <div className="col-4">
+                                    <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Height cm" 
+                                        value={newPlayer.heightCm} onChange={e => setNewPlayer({...newPlayer, heightCm: e.target.value})} />
+                                </div>
+                                <div className="col-4">
+                                    <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Weight kg" 
+                                        value={newPlayer.weightKg} onChange={e => setNewPlayer({...newPlayer, weightKg: e.target.value})} />
+                                </div>
+                                <div className="col-4">
+                                    <select className="form-select form-select-sm bg-dark text-white border-secondary shadow-none" value={newPlayer.preferredFoot} onChange={e => setNewPlayer({...newPlayer, preferredFoot: e.target.value})}>
+                                        <option value="">Foot</option><option value="Right">Right</option><option value="Left">Left</option><option value="Both">Both</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Договор и Мениджър */}
+                            <div className="row g-2 mb-2">
+                                <div className="col-4">
+                                    <input type="number" className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Shirt #" 
+                                        value={newPlayer.jerseyNumber} onChange={e => setNewPlayer({...newPlayer, jerseyNumber: e.target.value})} />
+                                </div>
+                                <div className="col-8">
+                                    <input type="number" step="0.01" className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Market Value (€)" 
+                                        value={newPlayer.marketValueEuro} onChange={e => setNewPlayer({...newPlayer, marketValueEuro: e.target.value})} />
+                                </div>
+                                <div className="col-6">
+                                    <input type="text" className="form-control form-control-sm bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Agent Name" 
+                                        value={newPlayer.agentName} onChange={e => setNewPlayer({...newPlayer, agentName: e.target.value})} />
+                                </div>
+                                <div className="col-6">
+                                    <input type="date" className="form-control form-control-sm bg-dark text-white border-secondary shadow-none" title="Contract End Date"
+                                        value={newPlayer.contractEndDate} onChange={e => setNewPlayer({...newPlayer, contractEndDate: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <input type="text" className="form-control form-control-sm mb-3 bg-dark text-white border-secondary placeholder-gray shadow-none" placeholder="Profile Image URL (Optional)" 
+                                value={newPlayer.profileImageUrl} onChange={e => setNewPlayer({...newPlayer, profileImageUrl: e.target.value})} />
+
+                            <div className="d-flex gap-2">
                                 <button type="submit" className="btn btn-warning text-dark w-100 fw-bold shadow-sm">Save</button>
                                 <label className="btn btn-outline-warning shadow-sm mb-0 px-3" title="Import CSV">
                                     <i className="bi bi-filetype-csv"></i>

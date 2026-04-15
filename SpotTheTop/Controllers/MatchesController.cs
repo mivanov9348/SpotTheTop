@@ -3,11 +3,8 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
-    using SpotTheTop.Core.DTOs.Leagues;
-    using SpotTheTop.Core.Models;
-    using SpotTheTop.Data;
+    using SpotTheTop.Services;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
 
     [Route("api/[controller]")]
@@ -15,107 +12,51 @@
     [Authorize(Roles = "SuperAdmin,Admin,Moderator")]
     public class MatchesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IMatchService _matchService;
 
-        public MatchesController(ApplicationDbContext context)
+        public MatchesController(IMatchService matchService)
         {
-            _context = context;
+            _matchService = matchService;
         }
 
-        // 1. ВЗЕМАНЕ НА МАЧОВЕ (Достъпно за всички)
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetMatches([FromQuery] int leagueId, [FromQuery] int? seasonId, [FromQuery] int? round)
         {
-            var season = seasonId.HasValue
-                ? await _context.Seasons.FirstOrDefaultAsync(s => s.Id == seasonId.Value && s.LeagueId == leagueId)
-                : await _context.Seasons.Where(s => s.LeagueId == leagueId && s.IsActive).OrderByDescending(s => s.StartDate).FirstOrDefaultAsync();
-
-            if (season == null) return NotFound("No active season found.");
-
-            var query = _context.Matches
-                .Include(m => m.HomeTeam)
-                .Include(m => m.AwayTeam)
-                .Where(m => m.LeagueId == leagueId && m.SeasonId == season.Id);
-
-            if (round.HasValue) query = query.Where(m => m.Round == round.Value);
-
-            var matches = await query
-                .OrderBy(m => m.MatchDate)
-                .Select(m => new {
-                    m.Id,
-                    m.Round,
-                    m.MatchDate,
-                    m.HomeTeamId,
-                    HomeTeamName = m.HomeTeam.Name,
-                    m.AwayTeamId,
-                    AwayTeamName = m.AwayTeam.Name,
-                    m.HomeScore,
-                    m.AwayScore,
-                    m.Status
-                })
-                .ToListAsync();
-
-            var availableRounds = await _context.Matches
-                .Where(m => m.LeagueId == leagueId && m.SeasonId == season.Id)
-                .Select(m => m.Round)
-                .Distinct()
-                .OrderBy(r => r)
-                .ToListAsync();
-
-            return Ok(new { SeasonId = season.Id, SeasonName = season.Name, Matches = matches, AvailableRounds = availableRounds });
+            var result = await _matchService.GetMatchesAsync(leagueId, seasonId, round);
+            if (result == null) return NotFound("No active season found.");
+            return Ok(result);
         }
 
-        // 2. ДОБАВЯНЕ НА МАЧ
         [HttpPost]
-        public async Task<IActionResult> AddMatch([FromBody] MatchCreateDto dto)
+        public async Task<IActionResult> AddMatch([FromBody] dynamic dto) // Замести с MatchCreateDto
         {
-            if (dto.HomeTeamId == dto.AwayTeamId)
-                return BadRequest("Home team and Away team cannot be the same.");
-
-            var match = new Match
+            try
             {
-                LeagueId = dto.LeagueId,
-                SeasonId = dto.SeasonId,
-                Round = dto.Round,
-                HomeTeamId = dto.HomeTeamId,
-                AwayTeamId = dto.AwayTeamId,
-                MatchDate = dto.MatchDate,
-                Status = "Scheduled"
-            };
-
-            _context.Matches.Add(match);
-            await _context.SaveChangesAsync();
-
-            return Ok("Match scheduled successfully!");
+                await _matchService.AddMatchAsync(dto);
+                return Ok("Match scheduled successfully!");
+            }
+            catch (System.ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        // 3. РЕДАКТИРАНЕ НА РЕЗУЛТАТ (Това се вика от зеленото тикче!)
         [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] MatchUpdateDto dto)
+        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] dynamic dto) // Замести с MatchUpdateDto
         {
-            var match = await _context.Matches.FindAsync(id);
-            if (match == null) return NotFound("Match not found.");
-
-            match.HomeScore = dto.HomeScore;
-            match.AwayScore = dto.AwayScore;
-            match.Status = dto.Status;
-
-            await _context.SaveChangesAsync();
+            var success = await _matchService.UpdateMatchResultAsync(id, dto);
+            if (!success) return NotFound("Match not found.");
             return Ok();
         }
 
-        // 4. ТРИЕНЕ НА МАЧ
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMatch(int id)
         {
-            var match = await _context.Matches.FindAsync(id);
-            if (match == null) return NotFound("Match not found.");
-
             try
             {
-                _context.Matches.Remove(match);
-                await _context.SaveChangesAsync();
+                var success = await _matchService.DeleteMatchAsync(id);
+                if (!success) return NotFound("Match not found.");
                 return Ok("Match deleted successfully!");
             }
             catch (DbUpdateException)
@@ -124,27 +65,11 @@
             }
         }
 
-        // 5. BULK IMPORT
         [HttpPost("bulk")]
-        public async Task<IActionResult> ImportMatches([FromBody] List<MatchCreateDto> dtos)
+        public async Task<IActionResult> ImportMatches([FromBody] List<dynamic> dtos) // Замести с MatchCreateDto
         {
-            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
-
-            var matches = dtos.Select(d => new Match
-            {
-                LeagueId = d.LeagueId,
-                SeasonId = d.SeasonId,
-                Round = d.Round,
-                HomeTeamId = d.HomeTeamId,
-                AwayTeamId = d.AwayTeamId,
-                MatchDate = d.MatchDate,
-                Status = "Scheduled"
-            }).ToList();
-
-            await _context.Matches.AddRangeAsync(matches);
-            await _context.SaveChangesAsync();
-
-            return Ok($"{matches.Count} matches imported successfully!");
+            if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
+            return Ok(await _matchService.ImportMatchesBulkAsync(dtos));
         }
     }
 }

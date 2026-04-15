@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SpotTheTop.Api;
+using SpotTheTop.Api.Interfaces;
 using SpotTheTop.Data;
+using SpotTheTop.Services;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -60,8 +62,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// --- Controllers ---
-// --- Controllers ---
+
+builder.Services.AddScoped<IPlayerService, PlayerService>();
+builder.Services.AddScoped<ISeasonService, SeasonService>();
+builder.Services.AddScoped<ILeagueService, LeagueService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IPositionService,PositionService>();
+builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddScoped<IFeedService, FeedService>();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;

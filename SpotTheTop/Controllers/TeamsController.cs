@@ -4,61 +4,33 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SpotTheTop.Core.DTOs.Teams;
-    using SpotTheTop.Core.Models;
-    using SpotTheTop.Data;
+    using SpotTheTop.Services;
+    using System.Collections.Generic;
     using System.Security.Claims;
+    using System.Threading.Tasks;
 
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class TeamsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITeamService _teamService;
 
-        public TeamsController(ApplicationDbContext context)
+        public TeamsController(ITeamService teamService)
         {
-            _context = context;
+            _teamService = teamService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetTeams([FromQuery] int? leagueId)
         {
-            var query = _context.Teams.Where(t => t.IsApproved);
-
-            if (leagueId.HasValue)
-            {
-                query = query.Where(t => t.LeagueId == leagueId.Value);
-            }
-
-            var teams = await query
-                .Select(t => new {
-                    t.Id,
-                    t.Name,
-                    t.City,
-                    t.Stadium,
-                    LeagueName = t.League.Name,
-                    t.LeagueId
-                })
-                .ToListAsync();
-
-            return Ok(teams);
+            return Ok(await _teamService.GetTeamsAsync(leagueId));
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTeamDetails(int id)
         {
-            var team = await _context.Teams
-                .Include(t => t.League)
-                .Where(t => t.Id == id)
-                .Select(t => new {
-                    t.Id,
-                    t.Name,
-                    t.City,
-                    t.Stadium,
-                    LeagueName = t.League.Name
-                })
-                .FirstOrDefaultAsync();
-
+            var team = await _teamService.GetTeamDetailsAsync(id);
             if (team == null) return NotFound("Team not found.");
             return Ok(team);
         }
@@ -67,62 +39,35 @@
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> AddTeam([FromBody] TeamCreateDto dto)
         {
-            var leagueExists = await _context.Leagues.AnyAsync(l => l.Id == dto.LeagueId);
-            if (!leagueExists) return BadRequest("Invalid League ID.");
-
-            var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
-
-            var team = new Team
+            try
             {
-                Name = dto.Name,
-                City = dto.City,
-                Stadium = dto.Stadium,
-                LeagueId = dto.LeagueId,
-                IsApproved = true,
-                ManagerUserId = currentUserEmail
-            };
-
-            _context.Teams.Add(team);
-            await _context.SaveChangesAsync();
-
-            return Ok($"Team '{team.Name}' added successfully!");
+                var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+                var result = await _teamService.AddTeamAsync(dto, currentUserEmail);
+                return Ok(result);
+            }
+            catch (System.ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("bulk")]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ImportTeams([FromBody] List<TeamCreateDto> dtos)
         {
-            if (dtos == null || !dtos.Any()) return BadRequest("No data received.");
-
+            if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
-
-            var teams = dtos.Select(d => new SpotTheTop.Core.Models.Team
-            {
-                Name = d.Name,
-                City = d.City,
-                Stadium = d.Stadium,
-                LeagueId = d.LeagueId,
-                IsApproved = true,
-                ManagerUserId = currentUserEmail
-            }).ToList();
-
-            await _context.Teams.AddRangeAsync(teams);
-            await _context.SaveChangesAsync();
-
-            return Ok($"{teams.Count} teams imported successfully!");
+            return Ok(await _teamService.ImportTeamsBulkAsync(dtos, currentUserEmail));
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> DeleteTeam(int id)
         {
-            var team = await _context.Teams.FindAsync(id);
-            if (team == null) return NotFound("Team not found.");
-
             try
             {
-                _context.Teams.Remove(team);
-                await _context.SaveChangesAsync();
+                var success = await _teamService.DeleteTeamAsync(id);
+                if (!success) return NotFound("Team not found.");
                 return Ok("Team deleted successfully!");
             }
             catch (DbUpdateException)

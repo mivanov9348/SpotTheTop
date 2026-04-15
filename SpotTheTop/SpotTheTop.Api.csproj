@@ -23,6 +23,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\SpotTheTop.Core\SpotTheTop.Core.csproj" />
 		<ProjectReference Include="..\SpotTheTop.Data\SpotTheTop.Data.csproj" />
+		<ProjectReference Include="..\SpotTheTop.Services\SpotTheTop.Services.csproj" />
 	</ItemGroup>
 
 </Project>
