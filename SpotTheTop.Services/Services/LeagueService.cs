@@ -5,6 +5,7 @@
     using SpotTheTop.Core.DTOs.Leagues;
     using SpotTheTop.Core.Models;
     using SpotTheTop.Data;
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -32,7 +33,22 @@
 
         public async Task<string> AddLeagueAsync(LeagueCreateDto dto)
         {
-            var league = new League { Name = dto.Name, Country = dto.Country };
+            // Проверка за дублиране при единично добавяне
+            bool exists = await _context.Leagues.AnyAsync(l =>
+                l.Name.ToLower() == dto.Name.Trim().ToLower() &&
+                l.Country.ToLower() == dto.Country.Trim().ToLower());
+
+            if (exists)
+            {
+                throw new ArgumentException($"League '{dto.Name}' in '{dto.Country}' already exists.");
+            }
+
+            var league = new League
+            {
+                Name = dto.Name.Trim(),
+                Country = dto.Country.Trim()
+            };
+
             _context.Leagues.Add(league);
             await _context.SaveChangesAsync();
             return $"League '{league.Name}' added successfully!";
@@ -78,10 +94,39 @@
 
         public async Task<string> ImportLeaguesBulkAsync(List<LeagueCreateDto> dtos)
         {
-            var leagues = dtos.Select(d => new League { Name = d.Name, Country = d.Country }).ToList();
-            await _context.Leagues.AddRangeAsync(leagues);
+            // Взимаме имената от DTO-тата
+            var incomingNames = dtos.Select(d => d.Name.Trim()).ToList();
+
+            // Търсим съществуващи лиги с тези имена в базата
+            var existingLeagues = await _context.Leagues
+                .Where(l => incomingNames.Contains(l.Name))
+                .Select(l => new { l.Name, l.Country })
+                .ToListAsync();
+
+            // Филтрираме само лигите, които ги няма в базата (по име И държава)
+            var newLeaguesDto = dtos.Where(dto =>
+                !existingLeagues.Any(el =>
+                    el.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    el.Country.Equals(dto.Country.Trim(), StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+
+            if (!newLeaguesDto.Any())
+            {
+                return "No new leagues to import. All existing leagues were skipped.";
+            }
+
+            // Създаваме моделите за запис
+            var leaguesToInsert = newLeaguesDto.Select(d => new League
+            {
+                Name = d.Name.Trim(),
+                Country = d.Country.Trim()
+            }).ToList();
+
+            await _context.Leagues.AddRangeAsync(leaguesToInsert);
             await _context.SaveChangesAsync();
-            return $"{leagues.Count} leagues imported successfully!";
+
+            int skippedCount = dtos.Count - leaguesToInsert.Count;
+            return $"{leaguesToInsert.Count} leagues imported successfully! ({skippedCount} duplicates skipped)";
         }
 
         public async Task<bool> DeleteLeagueAsync(int id)

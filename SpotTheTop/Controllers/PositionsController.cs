@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
+    using SpotTheTop.Core.DTOs.Players;
     using SpotTheTop.Services;
     using System.Collections.Generic;
     using System.Threading.Tasks;
@@ -27,16 +28,18 @@
 
         [HttpPost]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> AddPosition([FromBody] dynamic dto) // Замести с PositionCreateDto
+        public async Task<IActionResult> AddPosition([FromBody] PositionCreateDto dto)
         {
             return Ok(await _positionService.AddPositionAsync(dto));
         }
 
         [HttpPost("bulk")]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> ImportPositions([FromBody] List<dynamic> dtos) // Замести с PositionCreateDto
+        public async Task<IActionResult> ImportPositions([FromBody] List<PositionCreateDto> dtos)
         {
-            if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
+            if (dtos == null || dtos.Count == 0)
+                return BadRequest("No data received.");
+
             return Ok(await _positionService.ImportPositionsBulkAsync(dtos));
         }
 

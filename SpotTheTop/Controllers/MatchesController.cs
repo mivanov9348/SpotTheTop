@@ -3,8 +3,10 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
+    using SpotTheTop.Core.DTOs;
     using SpotTheTop.Services;
     using System.Collections.Generic;
+    using System.Security.Claims;
     using System.Threading.Tasks;
 
     [Route("api/[controller]")]
@@ -63,6 +65,18 @@
             {
                 return BadRequest("Cannot delete this match because it has recorded appearances or stats.");
             }
+        }
+
+        [HttpPost("{id}/stats")]
+        public async Task<IActionResult> SubmitMatchStats(int id, [FromBody] MatchStatsSubmitDto dto)
+        {
+            var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var success = await _matchService.SubmitMatchStatsAsync(id, dto, currentUserEmail);
+
+            if (!success) return NotFound("Match not found.");
+
+            return Ok("Match statistics and result saved successfully!");
         }
 
         [HttpPost("bulk")]

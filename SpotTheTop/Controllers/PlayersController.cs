@@ -32,9 +32,15 @@
         public async Task<IActionResult> AddPlayer([FromBody] PlayerCreateDto dto)
         {
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
-            bool isAdmin = User.IsInRole("Admin");
+            bool isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
 
             var message = await _playerService.AddPlayerAsync(dto, currentUserEmail, isAdmin);
+
+            if (message.StartsWith("Грешка:"))
+            {
+                return BadRequest(message);
+            }
+
             return Ok(message);
         }
 
@@ -81,7 +87,9 @@
         public async Task<IActionResult> ImportPlayers([FromBody] System.Collections.Generic.List<PlayerCreateDto> dtos)
         {
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
-            var message = await _playerService.ImportPlayersBulkAsync(dtos, currentUserEmail);
+            bool isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+
+            var message = await _playerService.ImportPlayersBulkAsync(dtos, currentUserEmail, isAdmin);
             return Ok(message);
         }
 

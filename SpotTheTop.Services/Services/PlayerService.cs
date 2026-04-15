@@ -88,7 +88,6 @@
 
             if (player == null) return null;
 
-            // Логика за достъп: Ако не е одобрен, само Админ/Мод или създателят могат да го видят
             if (!player.IsApproved && !isAdminOrMod && player.AddedByUserId != currentUserEmail)
             {
                 throw new UnauthorizedAccessException("Нямате права да виждате този неодобрен играч.");
@@ -136,20 +135,31 @@
 
         public async Task<string> AddPlayerAsync(PlayerCreateDto dto, string currentUserEmail, bool isAdmin)
         {
+            // ПРОВЕРКА ЗА ДУБЛИКАТ
+            bool playerExists = await _context.Players.AnyAsync(p =>
+                p.FirstName.ToLower() == dto.FirstName.ToLower() &&
+                p.LastName.ToLower() == dto.LastName.ToLower() &&
+                p.DateOfBirth.Date == dto.DateOfBirth.Date);
+
+            if (playerExists)
+            {
+                return "Грешка: Играч с това име и дата на раждане вече съществува в базата данни!";
+            }
+
             var newPlayer = new Player
             {
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 DateOfBirth = dto.DateOfBirth,
-                Nationality = dto.Nationality, // НОВО
-                HeightCm = dto.HeightCm, // НОВО
-                WeightKg = dto.WeightKg, // НОВО
-                PreferredFoot = dto.PreferredFoot, // НОВО
-                ProfileImageUrl = dto.ProfileImageUrl, // НОВО
-                JerseyNumber = dto.JerseyNumber, // НОВО
-                MarketValueEuro = dto.MarketValueEuro, // НОВО
-                ContractEndDate = dto.ContractEndDate, // НОВО
-                AgentName = dto.AgentName, // НОВО
+                Nationality = dto.Nationality,
+                HeightCm = dto.HeightCm,
+                WeightKg = dto.WeightKg,
+                PreferredFoot = dto.PreferredFoot,
+                ProfileImageUrl = dto.ProfileImageUrl,
+                JerseyNumber = dto.JerseyNumber,
+                MarketValueEuro = dto.MarketValueEuro,
+                ContractEndDate = dto.ContractEndDate,
+                AgentName = dto.AgentName,
                 PositionId = dto.PositionId,
                 TeamId = dto.TeamId,
                 AddedByUserId = currentUserEmail,
@@ -163,32 +173,56 @@
                            : "Скауте, играчът е добавен успешно, но чака одобрение от Админ!";
         }
 
-        public async Task<string> ImportPlayersBulkAsync(List<PlayerCreateDto> dtos, string currentUserEmail)
+        // Обновен метод за масово качване с подаден isAdmin флаг
+        public async Task<string> ImportPlayersBulkAsync(List<PlayerCreateDto> dtos, string currentUserEmail, bool isAdmin)
         {
-            var players = dtos.Select(d => new Player
-            {
-                FirstName = d.FirstName,
-                LastName = d.LastName,
-                DateOfBirth = d.DateOfBirth,
-                Nationality = d.Nationality,
-                HeightCm = d.HeightCm,
-                WeightKg = d.WeightKg,
-                PreferredFoot = d.PreferredFoot,
-                ProfileImageUrl = d.ProfileImageUrl,
-                JerseyNumber = d.JerseyNumber,
-                MarketValueEuro = d.MarketValueEuro,
-                ContractEndDate = d.ContractEndDate,
-                AgentName = d.AgentName,
-                PositionId = d.PositionId,
-                TeamId = d.TeamId,
-                AddedByUserId = currentUserEmail,
-                IsApproved = true
-            }).ToList();
+            // 1. Премахваме вътрешни дубликати от самия Excel (ако има повтарящи се редове)
+            var uniqueIncomingPlayers = dtos
+                .GroupBy(p => new { FirstName = p.FirstName.ToLower(), LastName = p.LastName.ToLower(), p.DateOfBirth.Date })
+                .Select(g => g.First())
+                .ToList();
 
-            await _context.Players.AddRangeAsync(players);
+            // 2. Взимаме само имената и датите от базата, за да не теглим цялата таблица
+            var existingPlayers = await _context.Players
+                .Select(p => new { FirstName = p.FirstName.ToLower(), LastName = p.LastName.ToLower(), p.DateOfBirth.Date })
+                .ToListAsync();
+
+            // 3. Филтрираме само тези, които ги няма в базата
+            var playersToAdd = uniqueIncomingPlayers
+                .Where(dto => !existingPlayers.Any(ep =>
+                    ep.FirstName == dto.FirstName.ToLower() &&
+                    ep.LastName == dto.LastName.ToLower() &&
+                    ep.Date == dto.DateOfBirth.Date))
+                .Select(d => new Player
+                {
+                    FirstName = d.FirstName,
+                    LastName = d.LastName,
+                    DateOfBirth = d.DateOfBirth,
+                    Nationality = d.Nationality,
+                    HeightCm = d.HeightCm,
+                    WeightKg = d.WeightKg,
+                    PreferredFoot = d.PreferredFoot,
+                    ProfileImageUrl = d.ProfileImageUrl,
+                    JerseyNumber = d.JerseyNumber,
+                    MarketValueEuro = d.MarketValueEuro,
+                    ContractEndDate = d.ContractEndDate,
+                    AgentName = d.AgentName,
+                    PositionId = d.PositionId,
+                    TeamId = d.TeamId,
+                    AddedByUserId = currentUserEmail,
+                    IsApproved = isAdmin // Вече използваме isAdmin флага
+                }).ToList();
+
+            if (!playersToAdd.Any())
+            {
+                return "Не бяха импортирани нови играчи. Всички вече съществуват в системата или са дубликати.";
+            }
+
+            await _context.Players.AddRangeAsync(playersToAdd);
             await _context.SaveChangesAsync();
 
-            return $"{players.Count} players imported successfully!";
+            int skippedCount = dtos.Count - playersToAdd.Count;
+            return $"{playersToAdd.Count} играчи бяха импортирани успешно! {skippedCount} бяха пропуснати като дубликати.";
         }
 
         public async Task<bool> ApprovePlayerAsync(int id)
@@ -210,7 +244,5 @@
             await _context.SaveChangesAsync();
             return true;
         }
-
-        
     }
 }

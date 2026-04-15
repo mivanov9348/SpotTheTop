@@ -59,19 +59,46 @@
 
         public async Task<string> ImportTeamsBulkAsync(List<TeamCreateDto> dtos, string currentUserEmail)
         {
-            var teams = dtos.Select(d => new Team
+            // 1. Взимаме всички имена на отбори от входящия списък
+            var incomingTeamNames = dtos.Select(d => d.Name.Trim()).ToList();
+
+            // 2. Търсим в базата кои от тези отбори вече съществуват
+            // Търсим по име и евентуално по LeagueId, за да сме сигурни, че няма да дублираме
+            var existingTeams = await _context.Teams
+                .Where(t => incomingTeamNames.Contains(t.Name))
+                .Select(t => new { t.Name, t.LeagueId })
+                .ToListAsync();
+
+            // 3. Филтрираме DTO-тата, като оставяме само тези, които ги НЯМА в базата
+            var newTeamsDto = dtos.Where(dto =>
+                !existingTeams.Any(et =>
+                    et.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    et.LeagueId == dto.LeagueId) // Проверяваме и лигата за всеки случай
+            ).ToList();
+
+            // Ако всички отбори от файла вече ги има в базата:
+            if (!newTeamsDto.Any())
             {
-                Name = d.Name,
-                City = d.City,
-                Stadium = d.Stadium,
+                return "No new teams to import. All existing teams were skipped.";
+            }
+
+            // 4. Създаваме моделите само за НОВИТЕ отбори
+            var teamsToInsert = newTeamsDto.Select(d => new Team
+            {
+                Name = d.Name.Trim(),
+                City = d.City?.Trim(),
+                Stadium = d.Stadium?.Trim(),
                 LeagueId = d.LeagueId,
                 IsApproved = true,
                 ManagerUserId = currentUserEmail
             }).ToList();
 
-            await _context.Teams.AddRangeAsync(teams);
+            // 5. Записваме в базата
+            await _context.Teams.AddRangeAsync(teamsToInsert);
             await _context.SaveChangesAsync();
-            return $"{teams.Count} teams imported successfully!";
+
+            int skippedCount = dtos.Count - teamsToInsert.Count;
+            return $"{teamsToInsert.Count} teams imported successfully! ({skippedCount} duplicates skipped)";
         }
 
         public async Task<bool> DeleteTeamAsync(int id)

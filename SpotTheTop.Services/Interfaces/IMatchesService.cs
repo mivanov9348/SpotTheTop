@@ -1,6 +1,6 @@
 ﻿namespace SpotTheTop.Services
 {
-    using SpotTheTop.Core.DTOs; 
+    using SpotTheTop.Core.DTOs;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
@@ -11,5 +11,6 @@
         Task<bool> UpdateMatchResultAsync(int id, dynamic dto); 
         Task<bool> DeleteMatchAsync(int id);
         Task<string> ImportMatchesBulkAsync(List<dynamic> dtos);
+        Task<bool> SubmitMatchStatsAsync(int matchId, MatchStatsSubmitDto dto, string currentUserEmail);
     }
 }

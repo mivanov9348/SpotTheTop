@@ -25,7 +25,8 @@
         public int? AwayScore { get; set; }
 
         [Required, MaxLength(20)]
-        public string Status { get; set; } = "Scheduled"; 
+        public string Status { get; set; } = "Scheduled";
+        public ICollection<MatchEvent> Events { get; set; } = new List<MatchEvent>();
 
         public ICollection<MatchAppearance> Appearances { get; set; } = new List<MatchAppearance>();
     }

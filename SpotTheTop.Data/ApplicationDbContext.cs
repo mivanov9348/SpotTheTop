@@ -23,7 +23,7 @@
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Like> Likes { get; set; }
-
+        public DbSet<MatchEvent> MatchEvents { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -122,6 +122,31 @@
                 .WithMany(p => p.Likes)
                 .HasForeignKey(l => l.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<MatchEvent>()
+                .HasOne(me => me.Match)
+                .WithMany(m => m.Events)
+                .HasForeignKey(me => me.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Връзки към играчите (спираме каскадното триене)
+            builder.Entity<MatchEvent>()
+                .HasOne(me => me.PrimaryPlayer)
+                .WithMany() // Не ни трябва колекция в самия играч за това
+                .HasForeignKey(me => me.PrimaryPlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MatchEvent>()
+                .HasOne(me => me.SecondaryPlayer)
+                .WithMany()
+                .HasForeignKey(me => me.SecondaryPlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MatchEvent>()
+                .HasOne(me => me.Team)
+                .WithMany()
+                .HasForeignKey(me => me.TeamId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

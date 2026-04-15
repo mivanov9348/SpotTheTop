@@ -2,6 +2,7 @@
 {
     using Microsoft.EntityFrameworkCore;
     using SpotTheTop.Api.Interfaces;
+    using SpotTheTop.Core.DTOs;
     using SpotTheTop.Core.Models;
     using SpotTheTop.Data;
     using System;
@@ -97,6 +98,68 @@
             await _context.Matches.AddRangeAsync(matches);
             await _context.SaveChangesAsync();
             return $"{matches.Count} matches imported successfully!";
+        }
+
+        public async Task<bool> SubmitMatchStatsAsync(int matchId, MatchStatsSubmitDto dto, string currentUserEmail)
+        {
+            var match = await _context.Matches
+                .Include(m => m.Appearances)
+                .FirstOrDefaultAsync(m => m.Id == matchId);
+
+            if (match == null) return false;
+
+            _context.MatchAppearances.RemoveRange(match.Appearances);
+
+            int homeGoals = 0;
+            int awayGoals = 0;
+
+            foreach (var stat in dto.PlayerStats)
+            {
+                var appearance = new MatchAppearance
+                {
+                    MatchId = matchId,
+                    PlayerId = stat.PlayerId,
+                    TeamId = stat.TeamId,
+                    MinutesPlayed = stat.MinutesPlayed,
+                    Goals = stat.Goals,
+                    Assists = stat.Assists,
+                    YellowCards = stat.YellowCards,
+                    IsRedCard = stat.IsRedCard,
+
+                    Shots = stat.Shots,
+                    ShotsOnTarget = stat.ShotsOnTarget,
+                    ChancesCreated = stat.ChancesCreated,
+                    DribblesCompleted = stat.DribblesCompleted,
+                    PassesCompleted = stat.PassesCompleted,
+                    PassAccuracyPercent = stat.PassAccuracyPercent,
+                    Crosses = stat.Crosses,
+                    TacklesWon = stat.TacklesWon,
+                    Interceptions = stat.Interceptions,
+                    Clearances = stat.Clearances,
+                    Blocks = stat.Blocks,
+                    IsCleanSheet = stat.IsCleanSheet,
+                    Saves = stat.Saves,
+                    GoalsConceded = stat.GoalsConceded,
+                    FoulsCommitted = stat.FoulsCommitted,
+                    FoulsDrawn = stat.FoulsDrawn,
+
+                    AddedByUserId = currentUserEmail,
+                    IsVerified = true 
+                };
+
+                _context.MatchAppearances.Add(appearance);
+
+                if (stat.TeamId == match.HomeTeamId) homeGoals += stat.Goals;
+                if (stat.TeamId == match.AwayTeamId) awayGoals += stat.Goals;
+            }
+
+            match.HomeScore = homeGoals;
+            match.AwayScore = awayGoals;
+            match.Status = "Finished";
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

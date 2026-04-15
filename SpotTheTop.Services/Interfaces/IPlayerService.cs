@@ -10,6 +10,7 @@
         Task<string> AddPlayerAsync(PlayerCreateDto dto, string currentUserEmail, bool isAdmin);
         Task<bool> ApprovePlayerAsync(int id);
         Task<bool> DeletePlayerAsync(int id);
-        Task<string> ImportPlayersBulkAsync(List<PlayerCreateDto> dtos, string currentUserEmail);
+
+        Task<string> ImportPlayersBulkAsync(List<PlayerCreateDto> dtos, string currentUserEmail, bool isAdmin);
     }
 }

@@ -7,10 +7,10 @@ namespace SpotTheTop.Core.DTOs.Players
         [Required, MaxLength(50)]
         public string Name { get; set; } = string.Empty;
 
-        [Required, MaxLength(4)]
+        //[Required, MaxLength(4)]
         public string Abbreviation { get; set; } = string.Empty;
 
         [Required, MaxLength(20)]
-        public string Category { get; set; } = string.Empty; // Напр. "Forward", "Midfielder"
+        public string Category { get; set; } = string.Empty; 
     }
 }
