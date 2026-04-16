@@ -17,7 +17,6 @@
         public int YellowCards { get; set; }
         public bool IsRedCard { get; set; }
 
-        // Разширени статистики (може да са null, ако не са въведени)
         public int? Shots { get; set; }
         public int? ShotsOnTarget { get; set; }
         public int? ChancesCreated { get; set; }

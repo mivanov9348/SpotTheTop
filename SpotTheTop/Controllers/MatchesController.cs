@@ -3,8 +3,8 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
+    using SpotTheTop.Api.Interfaces;
     using SpotTheTop.Core.DTOs;
-    using SpotTheTop.Services;
     using System.Collections.Generic;
     using System.Security.Claims;
     using System.Threading.Tasks;
@@ -31,7 +31,7 @@
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddMatch([FromBody] dynamic dto) // Замести с MatchCreateDto
+        public async Task<IActionResult> AddMatch([FromBody] MatchCreateDto dto) // <-- КРАЙ НА DYNAMIC
         {
             try
             {
@@ -45,7 +45,7 @@
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] dynamic dto) // Замести с MatchUpdateDto
+        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] MatchUpdateDto dto) // <-- КРАЙ НА DYNAMIC
         {
             var success = await _matchService.UpdateMatchResultAsync(id, dto);
             if (!success) return NotFound("Match not found.");
@@ -71,7 +71,6 @@
         public async Task<IActionResult> SubmitMatchStats(int id, [FromBody] MatchStatsSubmitDto dto)
         {
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
-
             var success = await _matchService.SubmitMatchStatsAsync(id, dto, currentUserEmail);
 
             if (!success) return NotFound("Match not found.");
@@ -80,7 +79,7 @@
         }
 
         [HttpPost("bulk")]
-        public async Task<IActionResult> ImportMatches([FromBody] List<dynamic> dtos) // Замести с MatchCreateDto
+        public async Task<IActionResult> ImportMatches([FromBody] List<MatchCreateDto> dtos) // <-- КРАЙ НА DYNAMIC
         {
             if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
             return Ok(await _matchService.ImportMatchesBulkAsync(dtos));

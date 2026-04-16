@@ -1,4 +1,4 @@
-﻿namespace SpotTheTop.Services
+﻿namespace SpotTheTop.Api.Interfaces
 {
     using SpotTheTop.Core.DTOs;
     using System.Collections.Generic;
@@ -7,10 +7,10 @@
     public interface IMatchService
     {
         Task<object?> GetMatchesAsync(int leagueId, int? seasonId, int? round);
-        Task AddMatchAsync(dynamic dto);
-        Task<bool> UpdateMatchResultAsync(int id, dynamic dto); 
+        Task AddMatchAsync(MatchCreateDto dto); 
+        Task<bool> UpdateMatchResultAsync(int id, MatchUpdateDto dto); 
         Task<bool> DeleteMatchAsync(int id);
-        Task<string> ImportMatchesBulkAsync(List<dynamic> dtos);
+        Task<string> ImportMatchesBulkAsync(List<MatchCreateDto> dtos);
         Task<bool> SubmitMatchStatsAsync(int matchId, MatchStatsSubmitDto dto, string currentUserEmail);
     }
 }

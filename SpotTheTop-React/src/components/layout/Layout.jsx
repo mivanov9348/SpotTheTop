@@ -44,7 +44,6 @@ export default function Layout() {
 
     return (
         <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
-            {/* ГЛОБАЛНИ СТИЛОВЕ: Убиваме белия фон на body */}
             <style dangerouslySetInnerHTML={{__html: `
                 body, html { background-color: #0f172a !important; margin: 0; padding: 0; }
                 .placeholder-gray::placeholder { color: #64748b !important; }
@@ -66,6 +65,10 @@ export default function Layout() {
                         <div className="navbar-nav flex-row gap-4 d-none d-lg-flex">
                             <Link to="/home" className={`nav-link text-decoration-none ${isActive('/home')}`}>Home</Link>
                             <Link to="/feed" className={`nav-link text-decoration-none ${isActive('/feed')}`}>Feed</Link>
+                            
+                            {/* НОВО: Бутон за мачове */}
+                            <Link to="/matches" className={`nav-link text-decoration-none ${isActive('/matches')}`}>Matches</Link>
+                            
                             <Link to="/leagues" className={`nav-link text-decoration-none ${isActive('/leagues')}`}>Leagues</Link>
                             <Link to="/players" className={`nav-link text-decoration-none ${isActive('/players')}`}>Players</Link>
                             
@@ -76,7 +79,6 @@ export default function Layout() {
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
-                        
                         <div className="input-group input-group-sm d-none d-xl-flex" style={{ maxWidth: '220px' }}>
                             <input type="text" className="form-control rounded-start-pill border-0 px-3 bg-dark text-white placeholder-gray shadow-none" placeholder="Search..." />
                             <button className="btn btn-dark rounded-end-pill px-3 text-info shadow-none" type="button">🔍</button>
@@ -126,12 +128,10 @@ export default function Layout() {
                                 <i className="bi bi-box-arrow-right fs-5"></i>
                             </button>
                         </div>
-
                     </div>
                 </div>
             </nav>
 
-            {/* flex-grow-1 гарантира, че main запълва екрана, ако е празен */}
             <main className="container mt-4 mb-5 pb-5 flex-grow-1">
                 <Outlet /> 
             </main>

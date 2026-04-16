@@ -6,7 +6,7 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const [newLeague, setNewLeague] = useState({ name: '', country: '' });
     const [newTeam, setNewTeam] = useState({ name: '', city: '', stadium: '', leagueId: '' });
     
-    // НОВО: Пълният стейт за играч
+    // Пълният стейт за играч
     const initialPlayerState = { 
         firstName: '', lastName: '', dateOfBirth: '', nationality: '', 
         heightCm: '', weightKg: '', preferredFoot: '', profileImageUrl: '', 
@@ -66,7 +66,6 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     payload = csvToJson(csvText, ['name', 'abbreviation', 'category']);
                     endpoint = `${API_URL}/Positions/bulk`;
                 } else if (type === 'players') {
-                    // Обновен масив за CSV (ако искат да качват масово)
                     payload = csvToJson(csvText, ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'positionId', 'teamId', 'heightCm', 'weightKg', 'preferredFoot', 'jerseyNumber', 'marketValueEuro', 'contractEndDate', 'agentName'])
                                .map(p => ({
                                    ...p, 
@@ -97,7 +96,8 @@ export default function DataManagement({ leagues, teams, loadData }) {
                     body: JSON.stringify(payload)
                 });
 
-                alert(await res.text());
+                const responseText = await res.text();
+                alert(responseText); // Показва съобщението от сървъра
                 if (res.ok) { loadData(); loadLocalData(); }
             } catch (err) { alert("Error parsing CSV or sending data."); }
             e.target.value = null; 
@@ -105,22 +105,32 @@ export default function DataManagement({ leagues, teams, loadData }) {
         reader.readAsText(file);
     };
 
-    const postData = async (endpoint, data, resetFn) => {
+    // ОБНОВЕН postData: Показва съобщението от сървъра при успех
+    const postData = async (endpoint, data, resetFn, customSuccessMessage = null) => {
         const token = localStorage.getItem('jwtToken');
         const res = await fetch(`${API_URL}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(data)
         });
-        if (res.ok) { resetFn(); loadData(); loadLocalData(); }
-        else alert(await res.text());
+        
+        const responseText = await res.text();
+        
+        if (res.ok) { 
+            resetFn(); 
+            loadData(); 
+            loadLocalData(); 
+            // Ако сме подали къстъм съобщение, показваме него, иначе показваме това от сървъра
+            alert(customSuccessMessage || responseText || "Successfully saved!");
+        } else {
+            alert(responseText || "An error occurred.");
+        }
     };
 
     const handleAddLeague = (e) => { e.preventDefault(); postData('Leagues', newLeague, () => setNewLeague({ name: '', country: '' })); };
     const handleAddTeam = (e) => { e.preventDefault(); postData('Teams', { ...newTeam, leagueId: parseInt(newTeam.leagueId) }, () => setNewTeam({ name: '', city: '', stadium: '', leagueId: '' })); };
     const handleAddPosition = (e) => { e.preventDefault(); postData('Positions', newPosition, () => setNewPosition({ name: '', abbreviation: '', category: '' })); };
     
-    // НОВО: Изпращане на данните за играч с правилните типове (числа, null)
     const handleAddPlayer = (e) => { 
         e.preventDefault(); 
         const payload = {
@@ -156,11 +166,13 @@ export default function DataManagement({ leagues, teams, loadData }) {
     const handleAddMatch = (e) => {
         e.preventDefault();
         if (newMatch.homeTeamId === newMatch.awayTeamId) return alert("Home and Away teams must be different!");
+        
         postData('Matches', {
             ...newMatch,
             leagueId: parseInt(newMatch.leagueId), seasonId: parseInt(newMatch.seasonId), round: parseInt(newMatch.round),
             homeTeamId: parseInt(newMatch.homeTeamId), awayTeamId: parseInt(newMatch.awayTeamId)
-        }, () => setNewMatch({ leagueId: '', seasonId: '', round: 1, homeTeamId: '', awayTeamId: '', matchDate: '' }));
+        }, () => setNewMatch({ leagueId: '', seasonId: '', round: 1, homeTeamId: '', awayTeamId: '', matchDate: '' }), 
+        "Match fixture added successfully!"); // Къстъм съобщение
     };
 
     const filteredTeamsForMatch = teams.filter(t => t.leagueId === parseInt(newMatch.leagueId));

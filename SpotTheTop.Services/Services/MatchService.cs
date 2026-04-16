@@ -46,7 +46,7 @@
             return new { SeasonId = season.Id, SeasonName = season.Name, Matches = matches, AvailableRounds = availableRounds };
         }
 
-        public async Task AddMatchAsync(dynamic dto)
+        public async Task AddMatchAsync(MatchCreateDto dto)
         {
             if (dto.HomeTeamId == dto.AwayTeamId) throw new ArgumentException("Home team and Away team cannot be the same.");
 
@@ -64,26 +64,20 @@
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> UpdateMatchResultAsync(int id, dynamic dto)
+        public async Task<bool> UpdateMatchResultAsync(int id, MatchUpdateDto dto)
         {
             var match = await _context.Matches.FindAsync(id);
             if (match == null) return false;
 
-            match.HomeScore = dto.HomeScore; match.AwayScore = dto.AwayScore; match.Status = dto.Status;
+            match.HomeScore = dto.HomeScore;
+            match.AwayScore = dto.AwayScore;
+            match.Status = dto.Status;
+
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> DeleteMatchAsync(int id)
-        {
-            var match = await _context.Matches.FindAsync(id);
-            if (match == null) return false;
-            _context.Matches.Remove(match);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<string> ImportMatchesBulkAsync(List<dynamic> dtos)
+        public async Task<string> ImportMatchesBulkAsync(List<MatchCreateDto> dtos)
         {
             var matches = dtos.Select(d => new Match
             {
@@ -100,6 +94,14 @@
             return $"{matches.Count} matches imported successfully!";
         }
 
+        public async Task<bool> DeleteMatchAsync(int id)
+        {
+            var match = await _context.Matches.FindAsync(id);
+            if (match == null) return false;
+            _context.Matches.Remove(match);
+            await _context.SaveChangesAsync();
+            return true;
+        }        
         public async Task<bool> SubmitMatchStatsAsync(int matchId, MatchStatsSubmitDto dto, string currentUserEmail)
         {
             var match = await _context.Matches

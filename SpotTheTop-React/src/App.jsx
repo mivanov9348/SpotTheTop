@@ -7,9 +7,10 @@ import Home from './components/pages/home/Home';
 import LeaguesPage from './components/pages/leagues/LeaguesPage';
 import PlayersPage from './components/pages/players/PlayersPage';
 import AdminPage from './components/pages/admin/AdminPage';
-import LeagueDetailsPage from './components/pages/leagues/LeagueDetailsPage'; // Бележка: Имаш печатна грешка в името на файла (DetaislPage), но го оставям така, за да не се счупи при теб!
+import LeagueDetailsPage from './components/pages/leagues/LeagueDetailsPage'; 
 import TeamDetailsPage from './components/pages/teams/TeamDetailsPage'; 
 import FeedPage from './components/pages/feed/FeedPage';
+import MatchesPage from './components/pages/matches/MatchesPage'; // НОВО
 
 function App() {
   return (
@@ -20,9 +21,10 @@ function App() {
 
         <Route element={<Layout />}>
           <Route path="/home" element={<Home />} />
-          
-          {/* ТУК ОСТАВЯМЕ САМО ИСТИНСКИЯ FEED PAGE */}
           <Route path="/feed" element={<FeedPage />} />
+          
+          {/* НОВИЯТ ТАБ ЗА МАЧОВЕ */}
+          <Route path="/matches" element={<MatchesPage />} />
           
           <Route path="/leagues" element={<LeaguesPage />} />
           <Route path="/leagues/:id" element={<LeagueDetailsPage />} /> 

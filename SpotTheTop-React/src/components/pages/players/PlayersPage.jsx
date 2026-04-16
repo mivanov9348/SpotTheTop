@@ -16,18 +16,28 @@ export default function PlayersPage() {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // --- Basic Filters ---
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLeague, setSelectedLeague] = useState(initialLeagueId); 
     const [selectedTeam, setSelectedTeam] = useState('all');
     const [selectedPosition, setSelectedPosition] = useState('all');
+    
+    // --- Advanced Filters ---
     const [minAge, setMinAge] = useState('');
     const [maxAge, setMaxAge] = useState('');
     const [minHeight, setMinHeight] = useState('');
     const [preferredFoot, setPreferredFoot] = useState('all');
-    const [minGoals, setMinGoals] = useState('');
-    const [minAssists, setMinAssists] = useState('');
+    const [nationality, setNationality] = useState('');
+    const [minMarketValue, setMinMarketValue] = useState('');
+
     const [minMatches, setMinMatches] = useState('');
     const [maxCards, setMaxCards] = useState('');
+    const [minGoals, setMinGoals] = useState('');
+    const [minAssists, setMinAssists] = useState('');
+    const [minPassAccuracy, setMinPassAccuracy] = useState('');
+    const [minTackles, setMinTackles] = useState('');
+    const [minCleanSheets, setMinCleanSheets] = useState('');
+    const [minSaves, setMinSaves] = useState('');
 
     useEffect(() => {
         const token = localStorage.getItem('jwtToken');
@@ -56,6 +66,7 @@ export default function PlayersPage() {
     };
 
     const filteredPlayers = players.filter(p => {
+        // Basic filtering
         const matchesSearch = p.fullName.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesPosition = selectedPosition === 'all' || p.position === selectedPosition;
         
@@ -69,20 +80,33 @@ export default function PlayersPage() {
         if (selectedTeam === 'free_agents') matchesTeam = p.teamId === null;
         else if (selectedTeam !== 'all') matchesTeam = p.teamId === parseInt(selectedTeam, 10);
 
+        // Advanced Bio & Physical
         const pAge = p.age || 0;
         const matchesMinAge = minAge === '' || pAge >= parseInt(minAge, 10);
         const matchesMaxAge = maxAge === '' || pAge <= parseInt(maxAge, 10);
         const matchesHeight = minHeight === '' || (p.heightCm && p.heightCm >= parseInt(minHeight, 10));
         const matchesFoot = preferredFoot === 'all' || p.preferredFoot === preferredFoot;
+        const matchesNationality = nationality === '' || (p.nationality && p.nationality.toLowerCase().includes(nationality.toLowerCase()));
+        const matchesMarketValue = minMarketValue === '' || (p.marketValueEuro && p.marketValueEuro >= parseInt(minMarketValue, 10));
 
-        const matchesGoals = minGoals === '' || (p.totalGoals || 0) >= parseInt(minGoals, 10);
-        const matchesAssists = minAssists === '' || (p.totalAssists || 0) >= parseInt(minAssists, 10);
+        // Advanced Performance
         const matchesApps = minMatches === '' || (p.matchesPlayed || 0) >= parseInt(minMatches, 10);
         const totalCards = (p.totalYellowCards || 0) + (p.totalRedCards || 0);
         const matchesCards = maxCards === '' || totalCards <= parseInt(maxCards, 10);
+        const matchesGoals = minGoals === '' || (p.totalGoals || 0) >= parseInt(minGoals, 10);
+        const matchesAssists = minAssists === '' || (p.totalAssists || 0) >= parseInt(minAssists, 10);
+        const matchesPassAcc = minPassAccuracy === '' || (p.averagePassAccuracy || 0) >= parseInt(minPassAccuracy, 10);
+        
+        // Advanced Defensive/GK
+        const matchesTackles = minTackles === '' || (p.totalTacklesWon || 0) >= parseInt(minTackles, 10);
+        const matchesCleanSheets = minCleanSheets === '' || (p.totalCleanSheets || 0) >= parseInt(minCleanSheets, 10);
+        const matchesSaves = minSaves === '' || (p.totalSaves || 0) >= parseInt(minSaves, 10);
 
-        return matchesSearch && matchesLeague && matchesPosition && matchesTeam && matchesMinAge && matchesMaxAge && 
-            matchesHeight && matchesFoot && matchesGoals && matchesAssists && matchesApps && matchesCards;
+        return matchesSearch && matchesLeague && matchesPosition && matchesTeam && 
+               matchesMinAge && matchesMaxAge && matchesHeight && matchesFoot && 
+               matchesNationality && matchesMarketValue && matchesApps && matchesCards && 
+               matchesGoals && matchesAssists && matchesPassAcc && matchesTackles && 
+               matchesCleanSheets && matchesSaves;
     });
 
     if (isLoading) return <div className="text-center p-5 text-light opacity-50">Loading player database...</div>;
@@ -108,20 +132,27 @@ export default function PlayersPage() {
                 selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} 
                 selectedTeam={selectedTeam} setSelectedTeam={setSelectedTeam}
                 selectedPosition={selectedPosition} setSelectedPosition={setSelectedPosition}
+                // Bio Props
                 minAge={minAge} setMinAge={setMinAge} maxAge={maxAge} setMaxAge={setMaxAge}
                 minHeight={minHeight} setMinHeight={setMinHeight}
                 preferredFoot={preferredFoot} setPreferredFoot={setPreferredFoot}
+                nationality={nationality} setNationality={setNationality}
+                minMarketValue={minMarketValue} setMinMarketValue={setMinMarketValue}
+                // Stats Props
                 minGoals={minGoals} setMinGoals={setMinGoals}
                 minAssists={minAssists} setMinAssists={setMinAssists}
                 minMatches={minMatches} setMinMatches={setMinMatches}
                 maxCards={maxCards} setMaxCards={setMaxCards}
-                leagues={leagues} 
-                teams={teams} positions={positions}
+                minPassAccuracy={minPassAccuracy} setMinPassAccuracy={setMinPassAccuracy}
+                minTackles={minTackles} setMinTackles={setMinTackles}
+                minCleanSheets={minCleanSheets} setMinCleanSheets={setMinCleanSheets}
+                minSaves={minSaves} setMinSaves={setMinSaves}
+                // Data Props
+                leagues={leagues} teams={teams} positions={positions}
             />
 
             <div className="card border-0 rounded-4 overflow-hidden shadow-lg" style={{ backgroundColor: '#1e293b' }}>
                 <div className="table-responsive">
-                    {/* ТУК ВЕЧЕ ИЗПОЛЗВАМЕ TABLE-DARK */}
                     <table className="table table-dark table-hover align-middle mb-0 text-center" style={{ backgroundColor: 'transparent' }}>
                         <thead className="text-uppercase small fw-bold text-light opacity-75 border-bottom border-secondary">
                             <tr>

@@ -1,15 +1,15 @@
 ﻿namespace SpotTheTop.Core.DTOs.Players
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
 
-    public class PlayerCreateDto
+    // 1. Имплементираме интерфейса IValidatableObject
+    public class PlayerCreateDto : IValidatableObject
     {
-        [Required]
-        public string FirstName { get; set; } = string.Empty;
+        public string? FirstName { get; set; }
 
-        [Required]
-        public string LastName { get; set; } = string.Empty;
+        public string? LastName { get; set; }
 
         [Required]
         public DateTime DateOfBirth { get; set; }
@@ -30,5 +30,16 @@
         public int PositionId { get; set; }
 
         public int? TeamId { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrWhiteSpace(FirstName) && string.IsNullOrWhiteSpace(LastName))
+            {
+                yield return new ValidationResult(
+                    "The Player must have at least a first name or a last name.",
+                    new[] { nameof(FirstName), nameof(LastName) }
+                );
+            }
+        }
     }
 }
