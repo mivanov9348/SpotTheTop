@@ -101,23 +101,83 @@
             _context.Matches.Remove(match);
             await _context.SaveChangesAsync();
             return true;
-        }        
-        public async Task<bool> SubmitMatchStatsAsync(int matchId, MatchStatsSubmitDto dto, string currentUserEmail)
+        }
+
+        public async Task<MatchDetailsForEditDto?> GetMatchDetailsForEditAsync(int matchId)
         {
             var match = await _context.Matches
                 .Include(m => m.Appearances)
+                .Include(m => m.Events)
+                .FirstOrDefaultAsync(m => m.Id == matchId);
+
+            if (match == null) return null;
+
+            // Взимаме играчите на двата отбора директно от базата
+            var homePlayers = await _context.Players.Include(p => p.Position).Where(p => p.TeamId == match.HomeTeamId && p.IsApproved).ToListAsync();
+            var awayPlayers = await _context.Players.Include(p => p.Position).Where(p => p.TeamId == match.AwayTeamId && p.IsApproved).ToListAsync();
+
+            return new MatchDetailsForEditDto
+            {
+                HomeTeamId = match.HomeTeamId,
+                AwayTeamId = match.AwayTeamId,
+                HomePlayers = homePlayers.Select(p => new MatchPlayerBasicDto { Id = p.Id, Name = $"{p.FirstName} {p.LastName}", Position = p.Position.Abbreviation }).ToList(),
+                AwayPlayers = awayPlayers.Select(p => new MatchPlayerBasicDto { Id = p.Id, Name = $"{p.FirstName} {p.LastName}", Position = p.Position.Abbreviation }).ToList(),
+
+                // Мапваме съществуващите статистики
+                ExistingStats = match.Appearances.Select(a => new MatchPlayerStatDto
+                {
+                    PlayerId = a.PlayerId,
+                    TeamId = a.TeamId,
+                    MinutesPlayed = a.MinutesPlayed,
+                    Goals = a.Goals,
+                    Assists = a.Assists,
+                    YellowCards = a.YellowCards,
+                    IsRedCard = a.IsRedCard,
+                    Shots = a.Shots,
+                    PassesCompleted = a.PassesCompleted,
+                    TacklesWon = a.TacklesWon,
+                    Saves = a.Saves,
+                    IsCleanSheet = a.IsCleanSheet
+                }).ToList(),
+
+                // Мапваме съществуващите събития
+                ExistingEvents = match.Events.Select(e => new MatchEventDto
+                {
+                    Minute = e.Minute,
+                    ExtraMinute = e.ExtraMinute,
+                    EventType = e.EventType,
+                    TeamId = e.TeamId,
+                    PrimaryPlayerId = e.PrimaryPlayerId,
+                    SecondaryPlayerId = e.SecondaryPlayerId,
+                    Notes = e.Notes
+                }).ToList()
+            };
+        }
+
+        // Оставяме само ТАЗИ версия на SubmitMatchStatsAsync
+        public async Task<bool> SubmitMatchStatsAsync(int matchId, MatchFullSaveDto dto, string currentUserEmail)
+        {
+            var match = await _context.Matches
+                .Include(m => m.Appearances)
+                .Include(m => m.Events) // Включваме и събитията
                 .FirstOrDefaultAsync(m => m.Id == matchId);
 
             if (match == null) return false;
 
+            // Изтриваме старите записи (презаписваме ги наново)
             _context.MatchAppearances.RemoveRange(match.Appearances);
+            _context.MatchEvents.RemoveRange(match.Events);
 
             int homeGoals = 0;
             int awayGoals = 0;
 
+            // 1. Записваме статистиките на играчите
             foreach (var stat in dto.PlayerStats)
             {
-                var appearance = new MatchAppearance
+                if (stat.MinutesPlayed == 0 && stat.Goals == 0 && stat.YellowCards == 0 && !stat.IsRedCard)
+                    continue; // Игнорираме играчи, които изобщо не са участвали
+
+                _context.MatchAppearances.Add(new MatchAppearance
                 {
                     MatchId = matchId,
                     PlayerId = stat.PlayerId,
@@ -127,40 +187,41 @@
                     Assists = stat.Assists,
                     YellowCards = stat.YellowCards,
                     IsRedCard = stat.IsRedCard,
-
                     Shots = stat.Shots,
-                    ShotsOnTarget = stat.ShotsOnTarget,
-                    ChancesCreated = stat.ChancesCreated,
-                    DribblesCompleted = stat.DribblesCompleted,
                     PassesCompleted = stat.PassesCompleted,
-                    PassAccuracyPercent = stat.PassAccuracyPercent,
-                    Crosses = stat.Crosses,
                     TacklesWon = stat.TacklesWon,
-                    Interceptions = stat.Interceptions,
-                    Clearances = stat.Clearances,
-                    Blocks = stat.Blocks,
-                    IsCleanSheet = stat.IsCleanSheet,
                     Saves = stat.Saves,
-                    GoalsConceded = stat.GoalsConceded,
-                    FoulsCommitted = stat.FoulsCommitted,
-                    FoulsDrawn = stat.FoulsDrawn,
-
+                    IsCleanSheet = stat.IsCleanSheet,
                     AddedByUserId = currentUserEmail,
-                    IsVerified = true 
-                };
-
-                _context.MatchAppearances.Add(appearance);
+                    IsVerified = true
+                });
 
                 if (stat.TeamId == match.HomeTeamId) homeGoals += stat.Goals;
                 if (stat.TeamId == match.AwayTeamId) awayGoals += stat.Goals;
             }
 
+            // 2. Записваме събитията (Timeline)
+            foreach (var ev in dto.Events)
+            {
+                _context.MatchEvents.Add(new MatchEvent
+                {
+                    MatchId = matchId,
+                    Minute = ev.Minute,
+                    ExtraMinute = ev.ExtraMinute,
+                    EventType = ev.EventType,
+                    TeamId = ev.TeamId,
+                    PrimaryPlayerId = ev.PrimaryPlayerId,
+                    SecondaryPlayerId = ev.SecondaryPlayerId,
+                    Notes = ev.Notes
+                });
+            }
+
+            // 3. Автоматично обновяваме резултата на мача!
             match.HomeScore = homeGoals;
             match.AwayScore = awayGoals;
             match.Status = "Finished";
 
             await _context.SaveChangesAsync();
-
             return true;
         }
     }

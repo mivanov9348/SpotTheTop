@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import MatchCardModal from './MatchCardModal'; // НОВО: Импортваме модала
+import MatchCardModal from '../matches/MatchCardModal'; 
 
 const API_URL = "https://localhost:44306/api";
 

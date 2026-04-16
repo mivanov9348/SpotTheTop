@@ -4,7 +4,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SpotTheTop.Api.Interfaces;
-    using SpotTheTop.Core.DTOs;
+    using SpotTheTop.Core.DTOs; // Или DTOs.Matches, в зависимост къде сложи горния код
     using System.Collections.Generic;
     using System.Security.Claims;
     using System.Threading.Tasks;
@@ -30,8 +30,18 @@
             return Ok(result);
         }
 
+        // НОВО: Взимане на детайли за редактиране
+        [HttpGet("{id}/edit-details")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMatchDetailsForEdit(int id)
+        {
+            var details = await _matchService.GetMatchDetailsForEditAsync(id);
+            if (details == null) return NotFound("Match not found.");
+            return Ok(details);
+        }
+
         [HttpPost]
-        public async Task<IActionResult> AddMatch([FromBody] MatchCreateDto dto) // <-- КРАЙ НА DYNAMIC
+        public async Task<IActionResult> AddMatch([FromBody] MatchCreateDto dto)
         {
             try
             {
@@ -45,7 +55,7 @@
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] MatchUpdateDto dto) // <-- КРАЙ НА DYNAMIC
+        public async Task<IActionResult> UpdateMatchResult(int id, [FromBody] MatchUpdateDto dto)
         {
             var success = await _matchService.UpdateMatchResultAsync(id, dto);
             if (!success) return NotFound("Match not found.");
@@ -67,8 +77,9 @@
             }
         }
 
+        // ПРОМЕНЕНО: Приема MatchFullSaveDto
         [HttpPost("{id}/stats")]
-        public async Task<IActionResult> SubmitMatchStats(int id, [FromBody] MatchStatsSubmitDto dto)
+        public async Task<IActionResult> SubmitMatchStats(int id, [FromBody] MatchFullSaveDto dto)
         {
             var currentUserEmail = User.FindFirstValue(ClaimTypes.Name) ?? "System";
             var success = await _matchService.SubmitMatchStatsAsync(id, dto, currentUserEmail);
@@ -79,7 +90,7 @@
         }
 
         [HttpPost("bulk")]
-        public async Task<IActionResult> ImportMatches([FromBody] List<MatchCreateDto> dtos) // <-- КРАЙ НА DYNAMIC
+        public async Task<IActionResult> ImportMatches([FromBody] List<MatchCreateDto> dtos)
         {
             if (dtos == null || dtos.Count == 0) return BadRequest("No data received.");
             return Ok(await _matchService.ImportMatchesBulkAsync(dtos));

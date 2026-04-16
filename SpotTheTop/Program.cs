@@ -70,6 +70,7 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IPositionService,PositionService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<IFeedService, FeedService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
