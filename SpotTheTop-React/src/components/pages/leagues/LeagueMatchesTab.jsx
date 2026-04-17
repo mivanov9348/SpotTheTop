@@ -3,13 +3,17 @@ import MatchCardModal from '../matches/MatchCardModal';
 
 const API_URL = "https://localhost:44306/api";
 
-export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
+export default function LeagueMatchesTab({ leagueId }) {
     const [matchesData, setMatchesData] = useState({ matches: [], availableRounds: [] });
     const [selectedRound, setSelectedRound] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Стейт за избрания мач, който ще се редактира в модала
+    // Стейтове за модала
     const [selectedMatchForEdit, setSelectedMatchForEdit] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false); // НОВО
+
+    const userRoles = JSON.parse(localStorage.getItem('userRoles') || "[]");
+    const hasAdminAccess = userRoles.some(r => ['SuperAdmin', 'Admin', 'Moderator'].includes(r));
 
     const fetchMatches = async (roundToFetch = null) => {
         setIsLoading(true);
@@ -45,10 +49,15 @@ export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
         fetchMatches(round);
     };
 
-    // Тази функция се вика от модала, когато запишем успешно резултата
     const handleMatchSaved = () => {
-        setSelectedMatchForEdit(null); // Затваря модала
-        fetchMatches(selectedRound); // Презарежда мачовете
+        setSelectedMatchForEdit(null); 
+        fetchMatches(selectedRound); 
+    };
+
+    // Функция за отваряне на модала
+    const openModal = (match, editMode) => {
+        setIsEditMode(editMode);
+        setSelectedMatchForEdit(match);
     };
 
     if (isLoading) return <div className="text-center py-5 text-light opacity-50"><div className="spinner-border mb-2"></div><div>Loading fixtures...</div></div>;
@@ -86,20 +95,17 @@ export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
                             const matchDate = new Date(match.matchDate);
 
                             return (
-                                <div key={match.id} className="list-group-item bg-transparent border-bottom border-secondary py-4 d-flex justify-content-between align-items-center">
+                                <div key={match.id} className="list-group-item bg-transparent border-bottom border-secondary py-4 d-flex flex-column flex-md-row justify-content-between align-items-center hover-bg-dark transition-all">
 
-                                    {/* ДАТА И ЧАС */}
-                                    <div className="text-light opacity-50 small text-center" style={{ width: '100px' }}>
+                                    <div className="text-light opacity-50 small text-center mb-2 mb-md-0" style={{ width: '100px' }}>
                                         <div className="fw-bold">{matchDate.toLocaleDateString()}</div>
                                         <div>{matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                         {match.status === 'Finished' && <div className="badge bg-success mt-1">FT</div>}
                                     </div>
 
-                                    {/* ОТБОРИ И РЕЗУЛТАТ */}
-                                    <div className="flex-grow-1 d-flex justify-content-center align-items-center gap-4">
+                                    <div className="flex-grow-1 d-flex justify-content-center align-items-center gap-2 gap-md-4 w-100">
                                         <div className="text-end fw-bold text-white fs-5" style={{ width: '35%' }}>{match.homeTeamName}</div>
 
-                                        {/* ПОКАЗВАНЕ НА РЕЗУЛТАТА (или тирета, ако не е игран) */}
                                         <div className="bg-dark border border-secondary rounded-pill px-4 py-2 d-flex justify-content-center align-items-center shadow-sm">
                                             <span className="fs-4 fw-bold text-white">{match.homeScore !== null ? match.homeScore : '-'}</span>
                                             <span className="mx-3 text-info fw-bold">:</span>
@@ -109,15 +115,25 @@ export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
                                         <div className="text-start fw-bold text-white fs-5" style={{ width: '35%' }}>{match.awayTeamName}</div>
                                     </div>
 
-                                    {/* БУТОН РЕДАКЦИЯ (ОТВАРЯ МОДАЛА) */}
-                                    <div style={{ width: '50px' }} className="text-end flex-shrink-0">
-                                        {canEditMatches && (
+                                    {/* НОВО: ДВАТА БУТОНА */}
+                                    <div className="d-flex gap-2 mt-3 mt-md-0">
+                                        {/* Бутон за преглед (видим за всички) */}
+                                        <button 
+                                            onClick={() => openModal(match, false)} 
+                                            className="btn btn-sm btn-outline-info border-0 shadow-none hover-scale"
+                                            title="View Match Center"
+                                        >
+                                            <i className="bi bi-info-circle fs-5"></i>
+                                        </button>
+
+                                        {/* Бутон за редакция (видим САМО за Админи) */}
+                                        {hasAdminAccess && (
                                             <button 
-                                                onClick={() => setSelectedMatchForEdit(match)} 
-                                                className="btn btn-sm btn-outline-info border-0 shadow-none hover-scale" 
-                                                title="Match Center & Stats"
+                                                onClick={() => openModal(match, true)} 
+                                                className="btn btn-sm btn-outline-warning border-0 shadow-none hover-scale"
+                                                title="Edit Match Stats"
                                             >
-                                                <i className="bi bi-file-earmark-bar-graph fs-5"></i>
+                                                <i className="bi bi-pencil-square fs-5"></i>
                                             </button>
                                         )}
                                     </div>
@@ -128,10 +144,10 @@ export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
                 </div>
             </div>
 
-            {/* Рендиране на модала, ако има избран мач */}
             {selectedMatchForEdit && (
                 <MatchCardModal 
                     match={selectedMatchForEdit} 
+                    canEdit={isEditMode} // Подаваме стейта isEditMode
                     onClose={() => setSelectedMatchForEdit(null)} 
                     onSave={handleMatchSaved} 
                 />
@@ -140,7 +156,8 @@ export default function LeagueMatchesTab({ leagueId, canEditMatches }) {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .hover-scale { transition: transform 0.1s ease; }
-                .hover-scale:hover { transform: scale(1.1); color: #fff !important; }
+                .hover-scale:hover { transform: scale(1.2); }
+                .hover-bg-dark:hover { background-color: #0f172a !important;}
             `}} />
         </div>
     );

@@ -77,7 +77,6 @@
             }
         }
 
-        // ПРОМЕНЕНО: Приема MatchFullSaveDto
         [HttpPost("{id}/stats")]
         public async Task<IActionResult> SubmitMatchStats(int id, [FromBody] MatchFullSaveDto dto)
         {

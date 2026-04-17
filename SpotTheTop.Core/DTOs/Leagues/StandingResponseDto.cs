@@ -2,6 +2,7 @@
 {
     public class StandingResponseDto
     {
+        public int Position { get; set; } 
         public int TeamId { get; set; }
         public string TeamName { get; set; } = string.Empty;
         public int MatchesPlayed { get; set; }

@@ -86,24 +86,31 @@
                     GoalDifference = ts.GoalsFor - ts.GoalsAgainst,
                     Points = ts.Points
                 })
-                .OrderByDescending(ts => ts.Points).ThenByDescending(ts => ts.GoalDifference).ThenByDescending(ts => ts.GoalsFor)
+                .OrderByDescending(ts => ts.Points)
+                .ThenByDescending(ts => ts.GoalDifference)
+                .ThenByDescending(ts => ts.GoalsFor)
                 .ToListAsync();
+
+            // НОВО: Добавяме пореден номер (Position) към всеки отбор, след като са вече сортирани
+            int rank = 1;
+            foreach (var team in standings)
+            {
+                team.Position = rank;
+                rank++;
+            }
 
             return new { SeasonId = season.Id, SeasonName = season.Name, Standings = standings };
         }
 
         public async Task<string> ImportLeaguesBulkAsync(List<LeagueCreateDto> dtos)
         {
-            // Взимаме имената от DTO-тата
             var incomingNames = dtos.Select(d => d.Name.Trim()).ToList();
 
-            // Търсим съществуващи лиги с тези имена в базата
             var existingLeagues = await _context.Leagues
                 .Where(l => incomingNames.Contains(l.Name))
                 .Select(l => new { l.Name, l.Country })
                 .ToListAsync();
 
-            // Филтрираме само лигите, които ги няма в базата (по име И държава)
             var newLeaguesDto = dtos.Where(dto =>
                 !existingLeagues.Any(el =>
                     el.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase) &&
@@ -115,7 +122,6 @@
                 return "No new leagues to import. All existing leagues were skipped.";
             }
 
-            // Създаваме моделите за запис
             var leaguesToInsert = newLeaguesDto.Select(d => new League
             {
                 Name = d.Name.Trim(),

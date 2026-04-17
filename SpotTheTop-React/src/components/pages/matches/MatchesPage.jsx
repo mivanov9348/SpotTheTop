@@ -4,7 +4,6 @@ import MatchCardModal from './MatchCardModal';
 const API_URL = "https://localhost:44306/api";
 
 export default function MatchesPage() {
-    // Взимаме днешната дата във формат YYYY-MM-DD (локално време)
     const getLocalDateString = (dateObj) => {
         return dateObj.getFullYear() + '-' + 
             String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -14,11 +13,13 @@ export default function MatchesPage() {
     const [selectedDate, setSelectedDate] = useState(getLocalDateString(new Date()));
     const [groupedMatches, setGroupedMatches] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // Стейтове за модала
     const [selectedMatchForEdit, setSelectedMatchForEdit] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false); // НОВО: Режим на модала
 
-    // Проверка на правата
     const userRoles = JSON.parse(localStorage.getItem('userRoles') || "[]");
-    const canEditMatches = userRoles.some(r => ['SuperAdmin', 'Admin', 'Moderator'].includes(r));
+    const hasAdminAccess = userRoles.some(r => ['SuperAdmin', 'Admin', 'Moderator'].includes(r));
 
     const fetchMatchesForDate = async (dateStr) => {
         setIsLoading(true);
@@ -26,11 +27,9 @@ export default function MatchesPage() {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
-            // 1. Взимаме всички лиги
             const leaguesRes = await fetch(`${API_URL}/Leagues`, { headers });
             const leagues = await leaguesRes.json();
 
-            // 2. Взимаме мачовете за всяка лига (от активния й сезон)
             const matchPromises = leagues.map(l => 
                 fetch(`${API_URL}/Matches?leagueId=${l.id}`, { headers })
                     .then(res => res.ok ? res.json() : null)
@@ -39,7 +38,6 @@ export default function MatchesPage() {
 
             const results = await Promise.all(matchPromises);
 
-            // 3. Филтрираме мачовете, които се играят на избраната дата
             const grouped = [];
             results.forEach(result => {
                 if (result.data && result.data.matches) {
@@ -48,7 +46,6 @@ export default function MatchesPage() {
                         return getLocalDateString(mDate) === dateStr;
                     });
 
-                    // Ако лигата има мачове днес, добавяме я в списъка
                     if (dayMatches.length > 0) {
                         grouped.push({
                             league: result.league,
@@ -70,7 +67,6 @@ export default function MatchesPage() {
         fetchMatchesForDate(selectedDate);
     }, [selectedDate]);
 
-    // Навигация между дните
     const handleDateChange = (daysOffset) => {
         const d = new Date(selectedDate);
         d.setDate(d.getDate() + daysOffset);
@@ -82,12 +78,16 @@ export default function MatchesPage() {
         fetchMatchesForDate(selectedDate);
     };
 
-    // Форматиране на датата за показване (напр. "Thursday, April 16")
+    // Функция за отваряне на модала
+    const openModal = (match, editMode) => {
+        setIsEditMode(editMode);
+        setSelectedMatchForEdit(match);
+    };
+
     const displayDate = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
     return (
         <div className="container-fluid px-0">
-            {/* HEADER И НАВИГАЦИЯ ЗА ДАТИТЕ */}
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 border-bottom border-secondary pb-3">
                 <div className="mb-3 mb-md-0">
                     <h2 className="fw-bold text-white mb-1">📅 Match Center</h2>
@@ -115,7 +115,6 @@ export default function MatchesPage() {
 
             <h5 className="text-center text-light opacity-75 mb-4 fw-bold">{displayDate}</h5>
 
-            {/* СПИСЪК С МАЧОВЕ */}
             {isLoading ? (
                 <div className="text-center py-5 text-light opacity-50">
                     <div className="spinner-border mb-3"></div>
@@ -131,7 +130,6 @@ export default function MatchesPage() {
                     <div className="col-lg-10 col-xl-8">
                         {groupedMatches.map(group => (
                             <div key={group.league.id} className="card shadow-sm border-0 rounded-4 overflow-hidden mb-4" style={{ backgroundColor: '#1e293b' }}>
-                                {/* ЗАГЛАВИЕ НА ЛИГАТА */}
                                 <div className="card-header bg-dark border-bottom border-secondary py-3 px-4 d-flex align-items-center">
                                     <div className="bg-primary rounded-circle d-flex justify-content-center align-items-center text-white me-3 fs-5" style={{ width: '35px', height: '35px' }}>
                                         🏆
@@ -142,21 +140,18 @@ export default function MatchesPage() {
                                     </div>
                                 </div>
 
-                                {/* МАЧОВЕТЕ В ЛИГАТА */}
                                 <div className="list-group list-group-flush">
                                     {group.matches.map(match => {
                                         const matchTime = new Date(match.matchDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         return (
-                                            <div key={match.id} className="list-group-item bg-transparent border-bottom border-secondary py-3 px-4 d-flex justify-content-between align-items-center hover-bg-dark transition-all">
+                                            <div key={match.id} className="list-group-item bg-transparent border-bottom border-secondary py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center hover-bg-dark transition-all">
                                                 
-                                                {/* ЧАС И СТАТУС */}
-                                                <div className="text-center" style={{ width: '60px' }}>
+                                                <div className="text-center mb-2 mb-md-0" style={{ width: '60px' }}>
                                                     <div className="fw-bold text-light opacity-75">{matchTime}</div>
                                                     {match.status === 'Finished' && <div className="badge bg-success mt-1 px-2">FT</div>}
                                                 </div>
 
-                                                {/* ОТБОРИ И РЕЗУЛТАТ */}
-                                                <div className="flex-grow-1 d-flex justify-content-center align-items-center gap-2 gap-md-4 px-2">
+                                                <div className="flex-grow-1 d-flex justify-content-center align-items-center gap-2 gap-md-4 px-2 w-100">
                                                     <div className="text-end fw-bold text-white fs-6" style={{ flex: 1 }}>{match.homeTeamName}</div>
                                                     
                                                     <div className="bg-dark border border-secondary rounded px-3 py-1 d-flex justify-content-center align-items-center shadow-sm text-nowrap">
@@ -168,15 +163,27 @@ export default function MatchesPage() {
                                                     <div className="text-start fw-bold text-white fs-6" style={{ flex: 1 }}>{match.awayTeamName}</div>
                                                 </div>
 
-                                                {/* БУТОН ЗА ДЕТАЙЛИ / РЕДАКЦИЯ */}
-                                                <div className="text-end" style={{ width: '40px' }}>
+                                                {/* НОВО: ДВАТА БУТОНА */}
+                                                <div className="d-flex gap-2 mt-3 mt-md-0">
+                                                    {/* Бутон за преглед (видим за всички) */}
                                                     <button 
-                                                        onClick={() => setSelectedMatchForEdit(match)} 
-                                                        className={`btn btn-sm border-0 shadow-none hover-scale ${canEditMatches ? 'btn-outline-warning' : 'btn-outline-info'}`}
-                                                        title={canEditMatches ? "Edit Match Stats" : "View Match Center"}
+                                                        onClick={() => openModal(match, false)} 
+                                                        className="btn btn-sm btn-outline-info border-0 shadow-none hover-scale"
+                                                        title="View Match Center"
                                                     >
-                                                        <i className={`bi fs-5 ${canEditMatches ? 'bi-pencil-square' : 'bi-info-circle'}`}></i>
+                                                        <i className="bi bi-info-circle fs-5"></i>
                                                     </button>
+
+                                                    {/* Бутон за редакция (видим САМО за Админи) */}
+                                                    {hasAdminAccess && (
+                                                        <button 
+                                                            onClick={() => openModal(match, true)} 
+                                                            className="btn btn-sm btn-outline-warning border-0 shadow-none hover-scale"
+                                                            title="Edit Match Stats"
+                                                        >
+                                                            <i className="bi bi-pencil-square fs-5"></i>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -188,11 +195,10 @@ export default function MatchesPage() {
                 </div>
             )}
 
-            {/* МОДАЛЪТ (Отваря се и за Admin, и за User, но вътре ще контролираме кой какво вижда) */}
             {selectedMatchForEdit && (
                 <MatchCardModal 
                     match={selectedMatchForEdit} 
-                    canEdit={canEditMatches} // Подаваме го, за да може модалът да скрие Save бутона за обикновени юзъри
+                    canEdit={isEditMode} // Подаваме стейта isEditMode
                     onClose={() => setSelectedMatchForEdit(null)} 
                     onSave={handleMatchSaved} 
                 />
@@ -202,7 +208,7 @@ export default function MatchesPage() {
                 __html: `
                 .hover-scale { transition: transform 0.1s ease; }
                 .hover-scale:hover { transform: scale(1.2); }
-                .hover-bg-dark:hover { background-color: #0f172a !important; cursor: pointer;}
+                .hover-bg-dark:hover { background-color: #0f172a !important;}
                 input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
             `}} />
         </div>

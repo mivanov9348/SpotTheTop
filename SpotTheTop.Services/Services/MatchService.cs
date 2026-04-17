@@ -74,6 +74,12 @@
             match.Status = dto.Status;
 
             await _context.SaveChangesAsync();
+
+            // Преизчисляваме точките, ако мачът е редактиран от зеленото тикче
+            await RecalculateTeamStandingAsync(match.SeasonId, match.LeagueId, match.HomeTeamId);
+            await RecalculateTeamStandingAsync(match.SeasonId, match.LeagueId, match.AwayTeamId);
+            await _context.SaveChangesAsync();
+
             return true;
         }
 
@@ -98,8 +104,20 @@
         {
             var match = await _context.Matches.FindAsync(id);
             if (match == null) return false;
+
+            int seasonId = match.SeasonId;
+            int leagueId = match.LeagueId;
+            int homeTeamId = match.HomeTeamId;
+            int awayTeamId = match.AwayTeamId;
+
             _context.Matches.Remove(match);
             await _context.SaveChangesAsync();
+
+            // Преизчисляваме точките след изтриване на мач
+            await RecalculateTeamStandingAsync(seasonId, leagueId, homeTeamId);
+            await RecalculateTeamStandingAsync(seasonId, leagueId, awayTeamId);
+            await _context.SaveChangesAsync();
+
             return true;
         }
 
@@ -112,7 +130,6 @@
 
             if (match == null) return null;
 
-            // Взимаме играчите на двата отбора директно от базата
             var homePlayers = await _context.Players.Include(p => p.Position).Where(p => p.TeamId == match.HomeTeamId && p.IsApproved).ToListAsync();
             var awayPlayers = await _context.Players.Include(p => p.Position).Where(p => p.TeamId == match.AwayTeamId && p.IsApproved).ToListAsync();
 
@@ -123,7 +140,6 @@
                 HomePlayers = homePlayers.Select(p => new MatchPlayerBasicDto { Id = p.Id, Name = $"{p.FirstName} {p.LastName}", Position = p.Position.Abbreviation }).ToList(),
                 AwayPlayers = awayPlayers.Select(p => new MatchPlayerBasicDto { Id = p.Id, Name = $"{p.FirstName} {p.LastName}", Position = p.Position.Abbreviation }).ToList(),
 
-                // Мапваме съществуващите статистики
                 ExistingStats = match.Appearances.Select(a => new MatchPlayerStatDto
                 {
                     PlayerId = a.PlayerId,
@@ -140,7 +156,6 @@
                     IsCleanSheet = a.IsCleanSheet
                 }).ToList(),
 
-                // Мапваме съществуващите събития
                 ExistingEvents = match.Events.Select(e => new MatchEventDto
                 {
                     Minute = e.Minute,
@@ -154,28 +169,26 @@
             };
         }
 
-        // Оставяме само ТАЗИ версия на SubmitMatchStatsAsync
         public async Task<bool> SubmitMatchStatsAsync(int matchId, MatchFullSaveDto dto, string currentUserEmail)
         {
             var match = await _context.Matches
                 .Include(m => m.Appearances)
-                .Include(m => m.Events) // Включваме и събитията
+                .Include(m => m.Events)
                 .FirstOrDefaultAsync(m => m.Id == matchId);
 
             if (match == null) return false;
 
-            // Изтриваме старите записи (презаписваме ги наново)
             _context.MatchAppearances.RemoveRange(match.Appearances);
             _context.MatchEvents.RemoveRange(match.Events);
 
             int homeGoals = 0;
             int awayGoals = 0;
 
-            // 1. Записваме статистиките на играчите
+            // 1. Запис на статистики
             foreach (var stat in dto.PlayerStats)
             {
                 if (stat.MinutesPlayed == 0 && stat.Goals == 0 && stat.YellowCards == 0 && !stat.IsRedCard)
-                    continue; // Игнорираме играчи, които изобщо не са участвали
+                    continue;
 
                 _context.MatchAppearances.Add(new MatchAppearance
                 {
@@ -200,7 +213,7 @@
                 if (stat.TeamId == match.AwayTeamId) awayGoals += stat.Goals;
             }
 
-            // 2. Записваме събитията (Timeline)
+            // 2. Запис на събития
             foreach (var ev in dto.Events)
             {
                 _context.MatchEvents.Add(new MatchEvent
@@ -216,13 +229,75 @@
                 });
             }
 
-            // 3. Автоматично обновяваме резултата на мача!
+            // 3. Обновяване на мача
             match.HomeScore = homeGoals;
             match.AwayScore = awayGoals;
             match.Status = "Finished";
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); // Запазваме мача, за да участва в сметките
+
+            // 4. ПРЕИЗЧИСЛЯВАНЕ НА КЛАСИРАНЕТО (НОВО!)
+            await RecalculateTeamStandingAsync(match.SeasonId, match.LeagueId, match.HomeTeamId);
+            await RecalculateTeamStandingAsync(match.SeasonId, match.LeagueId, match.AwayTeamId);
+
+            await _context.SaveChangesAsync(); // Запазваме новото класиране
+
             return true;
+        }
+
+        // ==========================================
+        // ПОМОЩЕН МЕТОД ЗА ПРЕИЗЧИСЛЯВАНЕ НА ТОЧКИТЕ
+        // ==========================================
+        private async Task RecalculateTeamStandingAsync(int seasonId, int leagueId, int teamId)
+        {
+            // 1. Взимаме или създаваме записа за класиране на отбора
+            var standing = await _context.TeamSeasonStandings
+                .FirstOrDefaultAsync(ts => ts.SeasonId == seasonId && ts.TeamId == teamId);
+
+            if (standing == null)
+            {
+                standing = new TeamSeasonStanding { SeasonId = seasonId, LeagueId = leagueId, TeamId = teamId };
+                _context.TeamSeasonStandings.Add(standing);
+            }
+
+            // 2. Взимаме ВСИЧКИ завършени мачове на този отбор за сезона
+            var finishedMatches = await _context.Matches
+                .Where(m => m.SeasonId == seasonId && m.Status == "Finished" && (m.HomeTeamId == teamId || m.AwayTeamId == teamId))
+                .ToListAsync();
+
+            // 3. Нулираме статистиката
+            standing.MatchesPlayed = finishedMatches.Count;
+            standing.Wins = 0;
+            standing.Draws = 0;
+            standing.Losses = 0;
+            standing.GoalsFor = 0;
+            standing.GoalsAgainst = 0;
+            standing.Points = 0;
+
+            // 4. Навъртаме мачовете и сумираме наново
+            foreach (var m in finishedMatches)
+            {
+                if (m.HomeTeamId == teamId)
+                {
+                    // Отборът е домакин
+                    standing.GoalsFor += m.HomeScore ?? 0;
+                    standing.GoalsAgainst += m.AwayScore ?? 0;
+
+                    if (m.HomeScore > m.AwayScore) { standing.Wins++; standing.Points += 3; }
+                    else if (m.HomeScore == m.AwayScore) { standing.Draws++; standing.Points += 1; }
+                    else { standing.Losses++; }
+                }
+                else
+                {
+                    // Отборът е гост
+                    standing.GoalsFor += m.AwayScore ?? 0;
+                    standing.GoalsAgainst += m.HomeScore ?? 0;
+
+                    if (m.AwayScore > m.HomeScore) { standing.Wins++; standing.Points += 3; }
+                    else if (m.AwayScore == m.HomeScore) { standing.Draws++; standing.Points += 1; }
+                    else { standing.Losses++; }
+                }
+            }
         }
     }
 }
