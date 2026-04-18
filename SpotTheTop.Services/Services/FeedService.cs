@@ -6,6 +6,7 @@
     using SpotTheTop.Data;
     using System;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
     public class FeedService : IFeedService
@@ -43,21 +44,22 @@
                 .ToListAsync();
         }
 
-        public async Task CreatePostAsync(string content, string currentUserId, string currentUserRole)
+        public async Task CreatePostAsync(string content, string authorUserId, string authorRole)
         {
             var post = new Post
             {
                 Content = content,
-                AuthorUserId = currentUserId,
-                AuthorRole = currentUserRole,
+                AuthorUserId = authorUserId,
+                AuthorRole = authorRole,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
+
+            await ProcessTagsAndNotifyAsync(content, authorUserId, $"/feed", $"tagged you in a new post!");
         }
 
-        public async Task<bool> AddCommentAsync(int postId, string content, string currentUserId)
+        public async Task<bool> AddCommentAsync(int postId, string content, string authorUserId)
         {
             var post = await _context.Posts.FindAsync(postId);
             if (post == null) return false;
@@ -66,13 +68,57 @@
             {
                 PostId = postId,
                 Content = content,
-                AuthorUserId = currentUserId,
+                AuthorUserId = authorUserId,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Comments.Add(comment);
+
+            // НОВО: Нотификация за автора на поста (ако не коментира собствения си пост)
+            if (post.AuthorUserId != authorUserId)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    TargetUserId = post.AuthorUserId,
+                    Content = $"**{authorUserId}** commented on your post.",
+                    LinkUrl = "/feed",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             await _context.SaveChangesAsync();
+
+            // НОВО: Сканираме за тагове в коментара
+            await ProcessTagsAndNotifyAsync(content, authorUserId, "/feed", "tagged you in a comment!");
+
             return true;
+        }
+
+        // ПОМОЩЕН МЕТОД ЗА ТАГОВЕТЕ
+        private async Task ProcessTagsAndNotifyAsync(string content, string authorUserId, string linkUrl, string actionText)
+        {
+            // Намира всички думи, започващи с @ (напр. @Pesho, @Ivan123)
+            var matches = Regex.Matches(content, @"@([A-Za-z0-9_]+)");
+
+            var taggedUsers = matches.Select(m => m.Groups[1].Value).Distinct().ToList();
+
+            foreach (var taggedUser in taggedUsers)
+            {
+                if (taggedUser.Equals(authorUserId, StringComparison.OrdinalIgnoreCase)) continue;
+
+                _context.Notifications.Add(new Notification
+                {
+                    TargetUserId = taggedUser,
+                    Content = $"**{authorUserId}** {actionText}",
+                    LinkUrl = linkUrl,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (taggedUsers.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task<bool> ToggleLikeAsync(int postId, string currentUserId)

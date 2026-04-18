@@ -4,7 +4,7 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const API_URL = "https://localhost:44306/api";
 
-export default function PostEditor({ onPostCreated, quoteContent, clearQuote }) {
+export default function PostEditor({ onPostCreated, quoteContent, clearQuote, currentUserEmail }) {
     const [content, setContent] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const quillRef = useRef(null);
@@ -20,17 +20,18 @@ export default function PostEditor({ onPostCreated, quoteContent, clearQuote }) 
 
     const editorModules = {
         toolbar: [
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote'],
+            ['bold', 'italic', 'underline'],
+            ['blockquote', 'link'],
             [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            ['link'],
             ['clean']
         ],
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!content || content === '<p><br></p>') return;
+        // Защита от празни постове
+        const plainText = content.replace(/<[^>]+>/g, '').trim();
+        if (!plainText && !content.includes('<img')) return;
 
         setIsSubmitting(true);
         const token = localStorage.getItem('jwtToken');
@@ -52,31 +53,49 @@ export default function PostEditor({ onPostCreated, quoteContent, clearQuote }) 
         setIsSubmitting(false);
     };
 
+    const displayInitial = currentUserEmail ? currentUserEmail.charAt(0).toUpperCase() : '?';
+
     return (
-        <div className="card border-0 rounded-4 mb-4 shadow-lg editor-card">
-            <div className="card-body p-0">
+        <div className="card border-0 rounded-4 mb-5 shadow-lg editor-card position-relative">
+            <div className="card-body p-0 d-flex flex-column">
+                
                 <form onSubmit={handleSubmit}>
-                    <ReactQuill
-                        ref={quillRef}
-                        theme="snow"
-                        value={content}
-                        onChange={setContent}
-                        modules={editorModules}
-                        placeholder="What's happening in the football world?"
-                    />
-                    <div className="d-flex justify-content-between align-items-center p-3 border-top border-secondary" style={{ backgroundColor: '#1e293b' }}>
+                    <div className="d-flex p-3 pb-0">
+                        {/* Аватар на потребителя */}
+                        <div className="me-3 d-none d-sm-block">
+                            <div className="rounded-circle d-flex justify-content-center align-items-center text-white fw-bold shadow-sm" style={{ width: '45px', height: '45px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', fontSize: '1.2rem' }}>
+                                {displayInitial}
+                            </div>
+                        </div>
+                        
+                        {/* Самото поле за писане */}
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                            <ReactQuill
+                                ref={quillRef}
+                                theme="snow"
+                                value={content}
+                                onChange={setContent}
+                                modules={editorModules}
+                                placeholder="What's happening in the football world?"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center p-3 mt-2 border-top border-secondary bg-dark" style={{ borderRadius: '0 0 1rem 1rem' }}>
                         <div>
                             {quoteContent && (
-                                <button type="button" className="btn btn-sm btn-outline-danger rounded-pill" onClick={() => { clearQuote(); setContent(''); }}>
-                                    Cancel Quote ✖
+                                <button type="button" className="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3 shadow-none" onClick={() => { clearQuote(); setContent(''); }}>
+                                    <i className="bi bi-x-circle-fill me-1"></i> Cancel Quote
                                 </button>
                             )}
                         </div>
-                        <button type="submit" className="btn btn-info text-dark fw-bold rounded-pill px-5 shadow" disabled={!content || content === '<p><br></p>' || isSubmitting}>
+                        
+                        <button type="submit" className="btn btn-info text-dark fw-bold rounded-pill px-4 shadow hover-scale" disabled={!content || content === '<p><br></p>' || isSubmitting}>
                             {isSubmitting ? 'Posting...' : 'Post Update'} <i className="bi bi-send-fill ms-1"></i>
                         </button>
                     </div>
                 </form>
+
             </div>
         </div>
     );
