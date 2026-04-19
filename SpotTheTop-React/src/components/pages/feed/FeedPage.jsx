@@ -8,6 +8,7 @@ export default function FeedPage() {
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [quoteContent, setQuoteContent] = useState(null);
+    const [activeTab, setActiveTab] = useState('All'); // НОВО: Стейт за табовете
 
     const [currentUserEmail, setCurrentUserEmail] = useState("");
     const [currentUserRoles, setCurrentUserRoles] = useState([]);
@@ -53,23 +54,56 @@ export default function FeedPage() {
         fetchPosts();
     }, []);
 
+    // НОВО: Логика за филтриране на постовете
+    const filteredPosts = posts.filter(post => {
+        if (activeTab === 'All') return true;
+        if (activeTab === 'News') return ['SuperAdmin', 'Admin'].includes(post.authorRole);
+        if (activeTab === 'Scouts') return ['Scout', 'Team'].includes(post.authorRole);
+        return true;
+    });
+
     return (
         <div style={{ maxWidth: '750px', margin: '0 auto' }}>
             
-            {/* МОДЕРЕН HEADER */}
-            <div className="d-flex justify-content-between align-items-center mb-4 p-4 rounded-4 shadow-sm" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
-                <div className="d-flex align-items-center gap-3">
+            {/* МОДЕРЕН HEADER С ТАБОВЕ */}
+            <div className="mb-4 rounded-4 shadow-sm overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+                <div className="p-4 d-flex align-items-center gap-3">
                     <div className="bg-dark rounded-circle d-flex justify-content-center align-items-center shadow text-info" style={{ width: '55px', height: '55px', fontSize: '1.5rem', border: '1px solid #334155' }}>
                         📰
                     </div>
                     <div>
                         <h2 className="fw-bolder text-white mb-0" style={{ letterSpacing: '-0.5px' }}>The Locker Room</h2>
-                        <p className="text-info mb-0 opacity-75 small fw-bold text-uppercase" style={{ letterSpacing: '1px' }}>Global Football Feed</p>
+                        <p className="text-info mb-0 opacity-75 small fw-bold text-uppercase" style={{ letterSpacing: '1px' }}>Global Football Hub</p>
                     </div>
+                </div>
+
+                {/* НОВО: ТАБОВЕ ЗА ФИЛТРИРАНЕ */}
+                <div className="d-flex px-4 border-top border-secondary bg-dark">
+                    <button 
+                        className={`btn shadow-none border-0 fw-bold py-3 px-3 position-relative transition-all ${activeTab === 'All' ? 'text-white' : 'text-light opacity-50'}`}
+                        onClick={() => setActiveTab('All')}
+                    >
+                        <i className="bi bi-globe-americas me-2"></i>All Posts
+                        {activeTab === 'All' && <div className="position-absolute bottom-0 start-0 w-100 bg-info rounded-top" style={{height: '3px'}}></div>}
+                    </button>
+                    <button 
+                        className={`btn shadow-none border-0 fw-bold py-3 px-3 position-relative transition-all ${activeTab === 'News' ? 'text-white' : 'text-light opacity-50'}`}
+                        onClick={() => setActiveTab('News')}
+                    >
+                        <i className="bi bi-newspaper me-2"></i>Official News
+                        {activeTab === 'News' && <div className="position-absolute bottom-0 start-0 w-100 bg-info rounded-top" style={{height: '3px'}}></div>}
+                    </button>
+                    <button 
+                        className={`btn shadow-none border-0 fw-bold py-3 px-3 position-relative transition-all ${activeTab === 'Scouts' ? 'text-white' : 'text-light opacity-50'}`}
+                        onClick={() => setActiveTab('Scouts')}
+                    >
+                        <i className="bi bi-search me-2"></i>Scout Reports
+                        {activeTab === 'Scouts' && <div className="position-absolute bottom-0 start-0 w-100 bg-info rounded-top" style={{height: '3px'}}></div>}
+                    </button>
                 </div>
             </div>
 
-            {/* РЕДАКТОРЪТ (Подаваме му email-а, за да си генерира аватарчето) */}
+            {/* РЕДАКТОРЪТ */}
             <PostEditor
                 onPostCreated={fetchPosts}
                 quoteContent={quoteContent}
@@ -81,17 +115,17 @@ export default function FeedPage() {
             {isLoading ? (
                 <div className="text-center p-5 text-light opacity-50 my-5">
                     <div className="spinner-grow text-info mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-                    <div className="fw-bold tracking-wider text-uppercase small">Fetching latest updates...</div>
+                    <div className="fw-bold tracking-wider text-uppercase small">Fetching updates...</div>
                 </div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
                 <div className="text-center p-5 rounded-4 shadow-sm border border-secondary" style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}>
-                    <i className="bi bi-megaphone fs-1 d-block mb-3 text-info opacity-50"></i>
-                    <h5 className="fw-bold text-white mb-1">It's quiet in here...</h5>
-                    <p className="mb-0 opacity-75">Be the first to break the silence and share some news!</p>
+                    <i className="bi bi-funnel fs-1 d-block mb-3 text-info opacity-50"></i>
+                    <h5 className="fw-bold text-white mb-1">Nothing here yet!</h5>
+                    <p className="mb-0 opacity-75">No posts found for this category.</p>
                 </div>
             ) : (
                 <div className="d-flex flex-column gap-4">
-                    {posts.map(post => (
+                    {filteredPosts.map(post => (
                         <PostCard
                             key={post.id}
                             post={post}
