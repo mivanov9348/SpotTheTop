@@ -43,7 +43,6 @@
             return Ok(notifications);
         }
 
-        // Маркира дадена нотификация като прочетена
         [HttpPost("{id}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {

@@ -4,7 +4,7 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SpotTheTop.Api.Interfaces;
-    using SpotTheTop.Core.DTOs; // Или DTOs.Matches, в зависимост къде сложи горния код
+    using SpotTheTop.Core.DTOs; 
     using System.Collections.Generic;
     using System.Security.Claims;
     using System.Threading.Tasks;
@@ -30,7 +30,6 @@
             return Ok(result);
         }
 
-        // НОВО: Взимане на детайли за редактиране
         [HttpGet("{id}/edit-details")]
         [AllowAnonymous]
         public async Task<IActionResult> GetMatchDetailsForEdit(int id)

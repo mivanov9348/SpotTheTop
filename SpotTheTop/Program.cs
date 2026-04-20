@@ -20,26 +20,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // --- Identity ---
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
-    // Премахва изискването за цифра
     options.Password.RequireDigit = false;
-
-    // Минималната възможна дължина е 1 (Identity не позволява 0)
     options.Password.RequiredLength = 1;
-
-    // Премахва изискването за малка буква
     options.Password.RequireLowercase = false;
-
-    // Премахва изискването за главна буква
     options.Password.RequireUppercase = false;
-
-    // Премахва изискването за специален символ (@, #, !, и т.н.)
     options.Password.RequireNonAlphanumeric = false;
-
-    // Премахва изискването за брой уникални символи
     options.Password.RequiredUniqueChars = 0;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
 // --- JWT ---
 builder.Services.AddAuthentication(options =>
 {
@@ -62,12 +52,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-
+// --- Services ---
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<ISeasonService, SeasonService>();
 builder.Services.AddScoped<ILeagueService, LeagueService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
-builder.Services.AddScoped<IPositionService,PositionService>();
+builder.Services.AddScoped<IPositionService, PositionService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<IFeedService, FeedService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -75,7 +65,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-}); 
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 // --- Swagger ---
@@ -107,20 +98,24 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// --- CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", builder =>
     {
-        builder.WithOrigins("http://localhost:5173") 
+        builder.WithOrigins("http://localhost:5173")
                .AllowAnyMethod()
-               .AllowAnyHeader();
+               .AllowAnyHeader()
+               .AllowCredentials(); // <-- Задължително за SignalR!
     });
 });
+
+// --- SignalR ---
+builder.Services.AddSignalR(); // <-- Регистрираме SignalR услугите
 
 var app = builder.Build();
 
 // --- Seed роли и админ ---
-// --- Seed роли, админ и базови данни ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -144,5 +139,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// --- НОВО: Мапинг на SignalR Hub-овете ---
+// Предполагам, че си създал папката Hubs и класа FeedHub според предишните инструкции.
+app.MapHub<SpotTheTop.Api.Hubs.FeedHub>("/feedHub");
 
 app.Run();
